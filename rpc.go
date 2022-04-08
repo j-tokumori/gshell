@@ -1,6 +1,7 @@
 package gshell
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,19 +22,21 @@ type RPC interface {
 }
 
 type Config struct {
-	Trace bool
+	//Trace bool
+	Host     string
+	IsSecure bool
 }
 
 type Client struct {
 	Conn        grpc.ClientConnInterface
-	Config      Config
+	rpcMap      map[string]NewRPCFunc
 	Replies     map[string]proto.Message
 	Headers     map[string]*metadata.MD
 	Trailers    map[string]*metadata.MD
 	LastRPCName string
 }
 
-func NewClient(host string, secure bool, config Config) *Client {
+func NewClient(host string, secure bool) *Client {
 	opt := grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 	if !secure {
 		opt = grpc.WithInsecure()
@@ -44,7 +48,8 @@ func NewClient(host string, secure bool, config Config) *Client {
 	}
 	return &Client{
 		Conn:     conn,
-		Config:   config,
+		rpcMap:   make(map[string]NewRPCFunc),
+		Replies:  make(map[string]proto.Message),
 		Headers:  make(map[string]*metadata.MD),
 		Trailers: make(map[string]*metadata.MD),
 	}
@@ -71,21 +76,9 @@ func (c *Client) Call(r RPC) {
 }
 
 func (c *Client) CallWithJSON(rpcName string, in []byte) {
-	v := reflect.ValueOf(c)
-	m := v.MethodByName(rpcName)
-	if m.Kind() != reflect.Func {
-		panic(m.Kind())
-	}
-	t := m.Type()
-	argv := make([]reflect.Value, t.NumIn())
-	argv[0] = reflect.ValueOf(in)
-
-	result := m.Call(argv)
-	if len(result) != 1 {
-		panic("") // TODO
-	}
-	a := result[0].Interface().(RPC)
-	c.Call(a)
+	f := c.rpcMap[rpcName]
+	rpc := f(in)
+	c.Call(rpc)
 }
 
 func (c *Client) Header(rpcName string) *metadata.MD {
@@ -120,23 +113,17 @@ func (c *Client) PrintLastReply() {
 }
 
 func (c *Client) PrintReply(rpcName string) {
-	//v := reflect.ValueOf(c.Replies)
-	//p := v.FieldByName(rpcName)
-	//if p.Kind() != reflect.Ptr {
-	//	panic(p.Kind())
-	//}
-	//m := p.Interface().(proto.Message)
-	//
-	//j, err := protojson.Marshal(m)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//var buf bytes.Buffer
-	//err = json.Indent(&buf, j, "", "  ")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//println(buf.String())
+	m := c.Replies[rpcName]
+	j, err := protojson.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+	var buf bytes.Buffer
+	err = json.Indent(&buf, j, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(buf.String())
 }
 
 func (c *Client) PrintLastHeader() {

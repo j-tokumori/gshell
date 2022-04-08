@@ -7,21 +7,35 @@ import (
 	"github.com/peterh/liner"
 )
 
+type NewRPCFunc func([]byte) RPC
+
 type Shell struct {
+	Client *Client
 }
 
-func New() *Shell {
-	return &Shell{}
+func New(cfg Config) *Shell {
+	return &Shell{
+		Client: NewClient(cfg.Host, cfg.IsSecure),
+	}
 }
 
-func (s *Shell) Start(cfg Config) {
-	cli := NewClient("localhost:8080", false, cfg)
-	sce := NewScenario(cli)
+func (s *Shell) Start() {
+	//cli := NewClient("localhost:8080", false, cfg)
+	sce := NewScenario(s.Client)
 
 	//bootstrap(c, s)
 
 	line := liner.NewLiner()
 	defer line.Close()
+
+	// TODO: wait for signal and kill
+	//sigs := make(chan os.Signal, 1)
+	//signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	//go func() {
+	//	sig := <-sigs
+	//	fmt.Printf("sig: %d, exit...", sig)
+	//	os.Exit(0)
+	//}()
 
 	for {
 		l, err := line.Prompt("gshell> ")
@@ -30,7 +44,7 @@ func (s *Shell) Start(cfg Config) {
 			continue
 		}
 
-		if s.exec(cli, sce, l) {
+		if s.exec(s.Client, sce, l) {
 			break
 		}
 
@@ -42,8 +56,12 @@ func (s *Shell) Start(cfg Config) {
 	fmt.Println("exit...")
 }
 
-func (s *Shell) Register(rpc RPC) {
-	// TODO:
+func (s *Shell) RegisterRPC(name string, f func([]byte) RPC) {
+	s.Client.rpcMap[name] = f
+}
+
+func RegisterRPC(s *Shell, name string, f func([]byte) RPC) {
+	s.Client.rpcMap[name] = f
 }
 
 func (s *Shell) bootstrap(cli *Client, sce *Scenario) {
