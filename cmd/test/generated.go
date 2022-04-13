@@ -13,13 +13,13 @@ import (
 
 func register(s *gshell.Shell) {
 	s.RegisterRPC("Register", NewRegister)
-	//s.RegisterReplies(Replies{})
-	s.RegisterScenario(&Scenario{})
 }
 
 // TODO
 // * Context
 // * ErrorWrap
+// * Generate
+// * 拡張コマンド Trace URL
 
 type Replies struct {
 	Register *api.RegisterReply
@@ -43,6 +43,13 @@ func (r *Register) Call(ctx context.Context, conn grpc.ClientConnInterface) (pro
 
 func (r *Register) Key() string {
 	return "Register"
+}
+
+func RegisterReply(c *gshell.Client) *api.RegisterReply {
+	if c.Replies["Register"] == nil {
+		return nil
+	}
+	return c.Replies["Register"].(*api.RegisterReply)
 }
 
 func NewRegister(in []byte) gshell.RPC {

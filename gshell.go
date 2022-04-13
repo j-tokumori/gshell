@@ -7,8 +7,6 @@ import (
 	"github.com/peterh/liner"
 )
 
-type NewRPCFunc func([]byte) RPC
-
 type Shell struct {
 	Client         *Client
 	Scenario       interface{}
@@ -23,8 +21,6 @@ func New(cfg Config) *Shell {
 }
 
 func (s *Shell) Start() {
-	//sce := NewScenario(s.Client)
-
 	s.bootstrap()
 
 	line := liner.NewLiner()
@@ -58,8 +54,12 @@ func (s *Shell) Start() {
 	fmt.Println("exit...")
 }
 
-func (s *Shell) RegisterRPC(name string, f func([]byte) RPC) {
+func (s *Shell) RegisterRPC(name string, f NewRPCFunc) {
 	s.Client.rpcMap[name] = f
+}
+
+func (s *Shell) RegisterContext(f ContextFunc) {
+	s.Client.ContextFunc = f
 }
 
 func (s *Shell) RegisterScenario(scenario interface{}) {
@@ -90,7 +90,7 @@ func (s *Shell) exec(c *Client, line string) bool {
 	switch fist {
 	case "rpc", "r":
 		args := s.parseArgs(third)
-		c.CallWithJSON(second, []byte(args))
+		c.CallByJSON(second, []byte(args))
 		c.PrintResponse(second)
 	case "scenario", "s":
 		//sce.Call(second)

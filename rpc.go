@@ -27,8 +27,13 @@ type Config struct {
 	IsSecure bool
 }
 
+type NewRPCFunc func([]byte) RPC
+
+type ContextFunc func(context.Context, *Client) context.Context
+
 type Client struct {
 	Conn        grpc.ClientConnInterface
+	ContextFunc ContextFunc
 	rpcMap      map[string]NewRPCFunc
 	Replies     map[string]proto.Message
 	Headers     map[string]*metadata.MD
@@ -66,7 +71,7 @@ func (c *Client) CallWithRecover(r RPC) {
 		}
 	}()
 
-	rep, h, t := r.Call(context.Background(), c.Conn)
+	rep, h, t := r.Call(c.ContextFunc(context.Background(), c), c.Conn)
 	c.Replies[r.Key()] = rep
 	c.Headers[r.Key()] = h
 	c.Trailers[r.Key()] = t
@@ -78,25 +83,25 @@ func (c *Client) Call(r RPC) {
 	c.CallWithRecover(r)
 }
 
-func (c *Client) CallWithJSON(rpcName string, in []byte) {
+func (c *Client) CallByJSON(rpcName string, in []byte) {
 	f := c.rpcMap[rpcName]
 	rpc := f(in)
 	c.Call(rpc)
 }
 
-func (c *Client) Header(rpcName string) *metadata.MD {
-	if _, ok := c.Headers[rpcName]; !ok {
-		c.Headers[rpcName] = &metadata.MD{}
-	}
-	return c.Headers[rpcName]
-}
-
-func (c *Client) Trailer(rpcName string) *metadata.MD {
-	if _, ok := c.Trailers[rpcName]; !ok {
-		c.Trailers[rpcName] = &metadata.MD{}
-	}
-	return c.Trailers[rpcName]
-}
+//func (c *Client) Header(rpcName string) *metadata.MD {
+//	if _, ok := c.Headers[rpcName]; !ok {
+//		c.Headers[rpcName] = &metadata.MD{}
+//	}
+//	return c.Headers[rpcName]
+//}
+//
+//func (c *Client) Trailer(rpcName string) *metadata.MD {
+//	if _, ok := c.Trailers[rpcName]; !ok {
+//		c.Trailers[rpcName] = &metadata.MD{}
+//	}
+//	return c.Trailers[rpcName]
+//}
 
 func (c *Client) PrintLastResponse() {
 	c.PrintResponse(c.LastRPCName)
@@ -176,7 +181,7 @@ func (c *Client) PrintTraceURL(rpcName string) {
 }
 
 func (c *Client) PrintSample(rpcName string) {
-	// TODO: CallWithJSON と処理の共通化
+	// TODO: CallByJSON と処理の共通化
 	v := reflect.ValueOf(c)
 	m := v.MethodByName(rpcName)
 	if m.Kind() != reflect.Func {

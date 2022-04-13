@@ -12,6 +12,7 @@ func NewScenarioPlayer() *ScenarioPlayer {
 }
 
 func (s *ScenarioPlayer) Play(client *Client, scenario interface{}, name string) {
+	// TODO: scenario nil チェック
 	v := reflect.ValueOf(scenario)
 	m := v.MethodByName(name)
 	if m.Kind() != reflect.Func {
