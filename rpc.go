@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -177,21 +178,16 @@ func (c *Client) PrintSample(rpcName string) {
 }
 
 func (c *Client) PrintList(search string) {
-	//v := reflect.ValueOf(c.Replies)
-	//nameList := make([]string, 0)
-	//for i := 0; i < v.NumField(); i++ {
-	//	field := v.Type().Field(i)
-	//	if !field.IsExported() {
-	//		continue
-	//	}
-	//	nameList = append(nameList, field.Name)
-	//}
-	//sort.Strings(nameList)
-	//for _, s := range nameList {
-	//	if strings.Contains(s, search) {
-	//		println(s)
-	//	}
-	//}
+	nameList := make([]string, 0)
+	for key := range c.rpcMap {
+		nameList = append(nameList, key)
+	}
+	sort.Strings(nameList)
+	for _, s := range nameList {
+		if strings.Contains(s, search) {
+			println(s)
+		}
+	}
 }
 
 // Defaultize 引数 r をデフォルト値で埋める。破壊的メソッド
