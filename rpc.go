@@ -18,11 +18,11 @@ import (
 )
 
 type RPC interface {
-	Call(ctx context.Context, e *Client)
+	Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD)
+	Key() string
 }
 
 type Config struct {
-	//Trace bool
 	Host     string
 	IsSecure bool
 }
@@ -66,7 +66,10 @@ func (c *Client) CallWithRecover(r RPC) {
 		}
 	}()
 
-	r.Call(context.Background(), c)
+	rep, h, t := r.Call(context.Background(), c.Conn)
+	c.Replies[r.Key()] = rep
+	c.Headers[r.Key()] = h
+	c.Trailers[r.Key()] = t
 }
 
 func (c *Client) Call(r RPC) {
@@ -216,6 +219,7 @@ func (c *Client) PrintList(search string) {
 }
 
 // Defaultize 引数 r をデフォルト値で埋める。破壊的メソッド
+// TODO: generics で書き直し
 func Defaultize(r interface{}, c *Client) {
 	pv := reflect.ValueOf(r)
 	if pv.Kind() != reflect.Ptr {
@@ -256,6 +260,7 @@ func Defaultize(r interface{}, c *Client) {
 }
 
 // Samplize 引数 r にサンプル値を代入
+// TODO: generics で書き直し
 func Samplize(r interface{}) {
 	pv := reflect.ValueOf(r)
 	if pv.Kind() != reflect.Ptr {

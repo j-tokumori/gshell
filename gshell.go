@@ -10,20 +10,22 @@ import (
 type NewRPCFunc func([]byte) RPC
 
 type Shell struct {
-	Client *Client
+	Client         *Client
+	Scenario       interface{}
+	ScenarioPlayer *ScenarioPlayer
 }
 
 func New(cfg Config) *Shell {
 	return &Shell{
-		Client: NewClient(cfg.Host, cfg.IsSecure),
+		Client:         NewClient(cfg.Host, cfg.IsSecure),
+		ScenarioPlayer: NewScenarioPlayer(),
 	}
 }
 
 func (s *Shell) Start() {
-	//cli := NewClient("localhost:8080", false, cfg)
-	sce := NewScenario(s.Client)
+	//sce := NewScenario(s.Client)
 
-	//bootstrap(c, s)
+	s.bootstrap()
 
 	line := liner.NewLiner()
 	defer line.Close()
@@ -44,7 +46,7 @@ func (s *Shell) Start() {
 			continue
 		}
 
-		if s.exec(s.Client, sce, l) {
+		if s.exec(s.Client, l) {
 			break
 		}
 
@@ -60,11 +62,11 @@ func (s *Shell) RegisterRPC(name string, f func([]byte) RPC) {
 	s.Client.rpcMap[name] = f
 }
 
-func RegisterRPC(s *Shell, name string, f func([]byte) RPC) {
-	s.Client.rpcMap[name] = f
+func (s *Shell) RegisterScenario(scenario interface{}) {
+	s.Scenario = scenario
 }
 
-func (s *Shell) bootstrap(cli *Client, sce *Scenario) {
+func (s *Shell) bootstrap() {
 	defer func() {
 		rec := recover()
 		if rec != nil {
@@ -73,10 +75,10 @@ func (s *Shell) bootstrap(cli *Client, sce *Scenario) {
 		}
 	}()
 
-	//sce.Boot()
+	s.ScenarioPlayer.Play(s.Client, s.Scenario, "Boot")
 }
 
-func (s *Shell) exec(c *Client, sce *Scenario, line string) bool {
+func (s *Shell) exec(c *Client, line string) bool {
 	defer func() {
 		rec := recover()
 		if rec != nil {
@@ -91,7 +93,7 @@ func (s *Shell) exec(c *Client, sce *Scenario, line string) bool {
 		c.CallWithJSON(second, []byte(args))
 		c.PrintResponse(second)
 	case "scenario", "s":
-		sce.Call(second)
+		//sce.Call(second)
 	case "response":
 		if second == "" {
 			c.PrintLastResponse()

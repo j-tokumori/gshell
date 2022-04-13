@@ -7,29 +7,42 @@ import (
 	"github.com/j-tokumori/gshell"
 	"github.com/j-tokumori/gshell/cmd/test/api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
 func register(s *gshell.Shell) {
 	s.RegisterRPC("Register", NewRegister)
+	//s.RegisterReplies(Replies{})
+	s.RegisterScenario(&Scenario{})
 }
 
 // TODO
-// * Scenario で Hoge Boot() を呼べない
 // * Context
 // * ErrorWrap
+
+type Replies struct {
+	Register *api.RegisterReply
+}
 
 // 以下generate 想定
 
 type Register api.RegisterArgs
 
-func (r *Register) Call(ctx context.Context, cli *gshell.Client) {
-	client := api.NewAuthServiceClient(cli.Conn)
+func (r *Register) Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD) {
+	client := api.NewAuthServiceClient(conn)
 	args := api.RegisterArgs(*r)
-	reply, err := client.Register(ctx, &args, grpc.Header(cli.Header("Register")), grpc.Trailer(cli.Trailer("Register")))
+	h := &metadata.MD{}
+	t := &metadata.MD{}
+	reply, err := client.Register(ctx, &args, grpc.Header(h), grpc.Trailer(t))
 	if err != nil {
 		panic(err)
 	}
-	cli.Replies["Register"] = reply
+	return reply, h, t
+}
+
+func (r *Register) Key() string {
+	return "Register"
 }
 
 func NewRegister(in []byte) gshell.RPC {

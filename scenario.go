@@ -4,22 +4,22 @@ import (
 	"reflect"
 )
 
-type Scenario struct {
-	e *Client
+type ScenarioPlayer struct {
 }
 
-func NewScenario(e *Client) *Scenario {
-	return &Scenario{e: e}
+func NewScenarioPlayer() *ScenarioPlayer {
+	return &ScenarioPlayer{}
 }
 
-func (s *Scenario) Call(scenario string) {
-	v := reflect.ValueOf(s)
-	m := v.MethodByName(scenario)
+func (s *ScenarioPlayer) Play(client *Client, scenario interface{}, name string) {
+	v := reflect.ValueOf(scenario)
+	m := v.MethodByName(name)
 	if m.Kind() != reflect.Func {
 		panic(m.Kind())
 	}
 	t := m.Type()
 	argv := make([]reflect.Value, t.NumIn())
+	argv[0] = reflect.ValueOf(client)
 	result := m.Call(argv)
 	if len(result) != 0 {
 		panic(result) // TODO
