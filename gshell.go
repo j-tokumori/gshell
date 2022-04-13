@@ -13,9 +13,19 @@ type Shell struct {
 	ScenarioPlayer *ScenarioPlayer
 }
 
+type Config struct {
+	Host     string
+	IsSecure bool
+
+	ContextFunc ContextFunc
+
+	Scenario interface{}
+}
+
 func New(cfg Config) *Shell {
 	return &Shell{
-		Client:         NewClient(cfg.Host, cfg.IsSecure),
+		Client:         NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc),
+		Scenario:       cfg.Scenario,
 		ScenarioPlayer: NewScenarioPlayer(),
 	}
 }
@@ -56,14 +66,6 @@ func (s *Shell) Start() {
 
 func (s *Shell) RegisterRPC(name string, f NewRPCFunc) {
 	s.Client.rpcMap[name] = f
-}
-
-func (s *Shell) RegisterContext(f ContextFunc) {
-	s.Client.ContextFunc = f
-}
-
-func (s *Shell) RegisterScenario(scenario interface{}) {
-	s.Scenario = scenario
 }
 
 func (s *Shell) bootstrap() {

@@ -9,13 +9,13 @@ import (
 )
 
 func main() {
-	s := gshell.New(gshell.Config{Host: "localhost:8080", IsSecure: false})
+	s := gshell.New(gshell.Config{
+		Host:        "localhost:8080",
+		IsSecure:    false,
+		ContextFunc: Context,
+		Scenario:    &Scenario{},
+	})
 	register(s)
-
-	// TODO: Config で渡す
-	s.RegisterContext(Context)
-	s.RegisterScenario(&Scenario{})
-
 	s.Start()
 }
 

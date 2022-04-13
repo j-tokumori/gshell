@@ -22,11 +22,6 @@ type RPC interface {
 	Key() string
 }
 
-type Config struct {
-	Host     string
-	IsSecure bool
-}
-
 type NewRPCFunc func([]byte) RPC
 
 type ContextFunc func(context.Context, *Client) context.Context
@@ -41,7 +36,7 @@ type Client struct {
 	LastRPCName string
 }
 
-func NewClient(host string, secure bool) *Client {
+func NewClient(host string, secure bool, ctxFunc ContextFunc) *Client {
 	opt := grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 	if !secure {
 		opt = grpc.WithInsecure()
@@ -52,11 +47,12 @@ func NewClient(host string, secure bool) *Client {
 		panic(err)
 	}
 	return &Client{
-		Conn:     conn,
-		rpcMap:   make(map[string]NewRPCFunc),
-		Replies:  make(map[string]proto.Message),
-		Headers:  make(map[string]*metadata.MD),
-		Trailers: make(map[string]*metadata.MD),
+		Conn:        conn,
+		ContextFunc: ctxFunc,
+		rpcMap:      make(map[string]NewRPCFunc),
+		Replies:     make(map[string]proto.Message),
+		Headers:     make(map[string]*metadata.MD),
+		Trailers:    make(map[string]*metadata.MD),
 	}
 }
 
@@ -88,20 +84,6 @@ func (c *Client) CallByJSON(rpcName string, in []byte) {
 	rpc := f(in)
 	c.Call(rpc)
 }
-
-//func (c *Client) Header(rpcName string) *metadata.MD {
-//	if _, ok := c.Headers[rpcName]; !ok {
-//		c.Headers[rpcName] = &metadata.MD{}
-//	}
-//	return c.Headers[rpcName]
-//}
-//
-//func (c *Client) Trailer(rpcName string) *metadata.MD {
-//	if _, ok := c.Trailers[rpcName]; !ok {
-//		c.Trailers[rpcName] = &metadata.MD{}
-//	}
-//	return c.Trailers[rpcName]
-//}
 
 func (c *Client) PrintLastResponse() {
 	c.PrintResponse(c.LastRPCName)
@@ -181,23 +163,12 @@ func (c *Client) PrintTraceURL(rpcName string) {
 }
 
 func (c *Client) PrintSample(rpcName string) {
-	// TODO: CallByJSON と処理の共通化
-	v := reflect.ValueOf(c)
-	m := v.MethodByName(rpcName)
-	if m.Kind() != reflect.Func {
-		panic(m.Kind())
-	}
-	t := m.Type()
-	argv := make([]reflect.Value, t.NumIn())
-	argv[0] = reflect.ValueOf([]byte("{}"))
+	f := c.rpcMap[rpcName]
+	a := f([]byte("{}"))
 
-	result := m.Call(argv)
-	if len(result) != 1 {
-		panic("") // TODO
-	}
-	a := result[0].Interface().(RPC)
 	Defaultize(a, c)
 	Samplize(a)
+
 	j, err := json.Marshal(a)
 	if err != nil {
 		panic(err)
