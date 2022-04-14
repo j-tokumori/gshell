@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/peterh/liner v1.2.2
+	golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135
 	google.golang.org/grpc v1.45.0
 )
 

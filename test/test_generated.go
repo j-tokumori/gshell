@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/j-tokumori/gshell"
-	"github.com/j-tokumori/gshell/cmd/test/api"
+	api2 "github.com/j-tokumori/gshell/test/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -22,16 +22,16 @@ func register(s *gshell.Shell) {
 // * 拡張コマンド Trace URL
 
 type Replies struct {
-	Register *api.RegisterReply
+	Register *api2.RegisterReply
 }
 
 // 以下generate 想定
 
-type Register api.RegisterArgs
+type Register api2.RegisterArgs
 
 func (r *Register) Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD) {
-	client := api.NewAuthServiceClient(conn)
-	args := api.RegisterArgs(*r)
+	client := api2.NewAuthServiceClient(conn)
+	args := api2.RegisterArgs(*r)
 	h := &metadata.MD{}
 	t := &metadata.MD{}
 	reply, err := client.Register(ctx, &args, grpc.Header(h), grpc.Trailer(t))
@@ -45,11 +45,11 @@ func (r *Register) Key() string {
 	return "Register"
 }
 
-func RegisterReply(c *gshell.Client) *api.RegisterReply {
+func RegisterReply(c *gshell.Client) *api2.RegisterReply {
 	if c.Replies["Register"] == nil {
 		return nil
 	}
-	return c.Replies["Register"].(*api.RegisterReply)
+	return c.Replies["Register"].(*api2.RegisterReply)
 }
 
 func NewRegister(in []byte) gshell.RPC {

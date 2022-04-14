@@ -4,6 +4,7 @@ import (
 	"reflect"
 )
 
+// ScenarioPlayer TODO: Client に Play 機能持たせていいか..
 type ScenarioPlayer struct {
 }
 
