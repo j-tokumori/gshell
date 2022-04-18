@@ -9,6 +9,7 @@ import (
 
 type Shell struct {
 	Client         *Client
+	Commands       map[string]CommandFunc
 	Scenario       interface{}
 	ScenarioPlayer *ScenarioPlayer
 }
@@ -25,12 +26,15 @@ type Config struct {
 func New(cfg Config) *Shell {
 	return &Shell{
 		Client:         NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc),
+		Commands:       make(map[string]CommandFunc, 0),
 		Scenario:       cfg.Scenario,
 		ScenarioPlayer: NewScenarioPlayer(),
 	}
 }
 
 func (s *Shell) Start() {
+	s.RegisterCommand(RPCCommand, "rpc", "r")
+
 	s.bootstrap()
 
 	line := liner.NewLiner()
@@ -68,6 +72,12 @@ func (s *Shell) RegisterRPC(name string, f NewRPCFunc) {
 	s.Client.rpcMap[name] = f
 }
 
+func (s *Shell) RegisterCommand(f CommandFunc, keys ...string) {
+	for _, key := range keys {
+		s.Commands[key] = f
+	}
+}
+
 func (s *Shell) bootstrap() {
 	defer func() {
 		rec := recover()
@@ -88,12 +98,18 @@ func (s *Shell) exec(c *Client, line string) bool {
 		}
 	}()
 
-	fist, second, third := s.parse(line)
-	switch fist {
-	case "rpc", "r":
-		args := s.parseArgs(third)
-		c.CallByJSON(second, []byte(args))
-		c.PrintResponse(second)
+	first, second, third := s.parse(line)
+
+	if f, ok := s.Commands[first]; ok {
+		f(c, second, third)
+		return false
+	}
+
+	switch first {
+	//case "rpc", "r":
+	//	args := s.parseArgs(third)
+	//	c.CallByJSON(second, []byte(args))
+	//	c.PrintResponse(second)
 	case "scenario", "s":
 		//sce.Call(second)
 	case "response":
@@ -161,28 +177,4 @@ func (s *Shell) parse(cmd string) (string, string, string) {
 	default:
 		return arr[0], arr[1], strings.Join(arr[2:], " ")
 	}
-}
-
-// parseArgs 引数のパース
-// {} を付け足して、key に "" を雑につけているだけの簡易処理
-// value に , や : があったり、入れ子データに対応していなかったりするので、修正必須
-func (s *Shell) parseArgs(str string) string {
-	str = strings.TrimSpace(str)
-	if str == "" {
-		return "{}"
-	}
-	if str[0:1] == "{" { // 先頭が { なら生 json とみなす
-		return str
-	}
-	args := strings.Split(str, ",")
-	modArgs := make([]string, 0)
-	for _, arg := range args {
-		kv := strings.Split(arg, ":")
-		if len(kv) != 2 {
-			panic("TODO")
-		}
-		kv[0] = `"` + kv[0] + `"`
-		modArgs = append(modArgs, strings.Join(kv[0:2], ":"))
-	}
-	return "{" + strings.Join(modArgs, ",") + "}"
 }
