@@ -10,15 +10,12 @@ import (
 	"text/template"
 
 	"golang.org/x/tools/go/packages"
-	//"github.com/NamcoBandaiStudios/prism/cmd/util/cmdflag"
 )
 
 func main() {
-	//flg := flag.NewFlag()
-	//flg.Parse()
-
+	moduleName := "github.com/j-tokumori/gshell/sample/api"
 	if err := write("cmd/gengshell/template/generated.go.txt",
-		"test/generated.go", "", GetDataList()); err != nil {
+		"sample/generated.go", "gofmt", moduleName, GetDataList(moduleName)); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -30,9 +27,10 @@ type Data struct {
 	Reply         string
 }
 
-func GetDataList() []Data {
-	cfg := &packages.Config{Mode: packages.NeedSyntax}
-	pkgs, err := packages.Load(cfg, "github.com/j-tokumori/gshell/cmd/test/api")
+func GetDataList(moduleName string) []Data {
+	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedSyntax} // TODO: 現sampleでは NeedTypes を入れないと、Syntaxが取れない
+	pkgs, err := packages.Load(cfg, "github.com/j-tokumori/gshell/sample/api")
+	//pkgs, err := packages.Load(cfg, "github.com/NamcoBandaiStudios/prism/pb/api")
 	if err != nil {
 		panic(err)
 	}
@@ -48,6 +46,7 @@ func GetDataList() []Data {
 						case *ast.InterfaceType:
 							if regexp.MustCompile(`Client$`).Match([]byte(t.Name.Name)) {
 								for _, m := range tt.Methods.List {
+									println(t.Name.Name, m.Names[0].Name)
 									dataList = append(dataList, Data{
 										t.Name.Name,
 										m.Names[0].Name,
@@ -67,7 +66,7 @@ func GetDataList() []Data {
 }
 
 // write テンプレートファイルから書き出し
-func write(templfile, output, fmt string, data []Data) error {
+func write(templfile, output, fmt string, moduleName string, data []Data) error {
 	force := true
 	funcMap := template.FuncMap{
 		//"title":   strings.Title,
@@ -105,9 +104,11 @@ func write(templfile, output, fmt string, data []Data) error {
 	}
 
 	dataList := struct {
-		DataList []Data
+		ModuleName string
+		DataList   []Data
 	}{
-		DataList: data,
+		ModuleName: moduleName,
+		DataList:   data,
 	}
 	err = templ.Execute(file, dataList)
 	if err != nil {

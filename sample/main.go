@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/j-tokumori/gshell"
-	"github.com/j-tokumori/gshell/test/api"
+	"github.com/j-tokumori/gshell/sample/api"
+
 	"google.golang.org/grpc/metadata"
 )
 
