@@ -2,7 +2,10 @@ package gshell
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/peterh/liner"
 )
@@ -19,13 +22,14 @@ type Config struct {
 	IsSecure bool
 
 	ContextFunc ContextFunc
+	ErrorFunc   ErrorFunc
 
 	Scenario interface{}
 }
 
 func New(cfg Config) *Shell {
 	return &Shell{
-		Client:         NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc),
+		Client:         NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc, cfg.ErrorFunc),
 		Commands:       make(map[string]CommandFunc, 0),
 		Scenario:       cfg.Scenario,
 		ScenarioPlayer: NewScenarioPlayer(),
@@ -41,13 +45,13 @@ func (s *Shell) Start() {
 	defer line.Close()
 
 	// TODO: wait for signal and kill
-	//sigs := make(chan os.Signal, 1)
-	//signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	//go func() {
-	//	sig := <-sigs
-	//	fmt.Printf("sig: %d, exit...", sig)
-	//	os.Exit(0)
-	//}()
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigs
+		fmt.Printf("\nsig: %d, exit...", sig)
+		os.Exit(0)
+	}()
 
 	for {
 		l, err := line.Prompt("gshell> ")

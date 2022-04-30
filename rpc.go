@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -27,9 +26,12 @@ type NewRPCFunc func([]byte) RPC
 
 type ContextFunc func(context.Context, *Client) context.Context
 
+type ErrorFunc func(error)
+
 type Client struct {
 	Conn        grpc.ClientConnInterface
 	ContextFunc ContextFunc
+	ErrorFunc   ErrorFunc
 	rpcMap      map[string]NewRPCFunc
 	Replies     map[string]proto.Message
 	Headers     map[string]*metadata.MD
@@ -37,7 +39,7 @@ type Client struct {
 	LastRPCName string
 }
 
-func NewClient(host string, secure bool, ctxFunc ContextFunc) *Client {
+func NewClient(host string, secure bool, ctxFunc ContextFunc, errFunc ErrorFunc) *Client {
 	opt := grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
 	if !secure {
 		opt = grpc.WithInsecure()
@@ -50,6 +52,7 @@ func NewClient(host string, secure bool, ctxFunc ContextFunc) *Client {
 	return &Client{
 		Conn:        conn,
 		ContextFunc: ctxFunc,
+		ErrorFunc:   errFunc,
 		rpcMap:      make(map[string]NewRPCFunc),
 		Replies:     make(map[string]proto.Message),
 		Headers:     make(map[string]*metadata.MD),
@@ -61,7 +64,7 @@ func (c *Client) CallWithRecover(r RPC) {
 	defer func() {
 		rec := recover()
 		if err, ok := rec.(error); ok {
-			PrintGrpcErr(err)
+			c.ErrorFunc(err)
 		}
 		if rec != nil {
 			panic(rec)
@@ -91,11 +94,11 @@ func (c *Client) PrintLastResponse() {
 }
 
 func (c *Client) PrintResponse(rpcName string) {
-	println("Header:")
+	fmt.Println("Header:")
 	c.PrintMD(c.Headers[rpcName])
-	println("Trailer:")
+	fmt.Println("Trailer:")
 	c.PrintMD(c.Trailers[rpcName])
-	println("Reply:")
+	fmt.Println("Reply:")
 	c.PrintReply(rpcName)
 }
 
@@ -174,7 +177,7 @@ func (c *Client) PrintSample(rpcName string) {
 	if err != nil {
 		panic(err)
 	}
-	println("rpc " + rpcName + " " + string(j))
+	fmt.Println("rpc " + rpcName + " " + string(j))
 }
 
 func (c *Client) PrintList(search string) {
@@ -185,7 +188,7 @@ func (c *Client) PrintList(search string) {
 	sort.Strings(nameList)
 	for _, s := range nameList {
 		if strings.Contains(s, search) {
-			println(s)
+			fmt.Println(s)
 		}
 	}
 }
@@ -291,28 +294,5 @@ func Samplize(r interface{}) {
 				}
 			}
 		}
-	}
-}
-
-func PrintGrpcErr(err error) {
-	if s, ok := status.FromError(err); ok {
-		println(s.Message())
-		//for _, i2 := range s.Details() {
-		//	switch message := i2.(type) {
-		//	case *pb_status.ErrorDialog:
-		//		fmt.Printf("error code: %d\n", message.GetErrorCode())
-		//		fmt.Printf("title: %s\n", message.GetTitle())
-		//		fmt.Printf("message: %s\n", message.GetMessage())
-		//		fmt.Printf("buttons: %v\n", message.GetButtons())
-		//		fmt.Printf("domain: %s\n", message.GetDomain())
-		//	case *errdetails.DebugInfo:
-		//		fmt.Println("Stacktrace")
-		//		for _, stack := range message.GetStackEntries() {
-		//			fmt.Printf("%s\n", stack)
-		//		}
-		//	default:
-		//		fmt.Printf("%#v\n", message)
-		//	}
-		//}
 	}
 }

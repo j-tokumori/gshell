@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 
-    api "{{ .ModuleName }}"
+    rpc "{{ .ModuleName }}"
 
 	"github.com/j-tokumori/gshell"
 
@@ -25,12 +25,12 @@ func register(s *gshell.Shell) {
 
 {{ range $i, $data := .DataList }}
 // {{$data.RPC}} ...
-type {{$data.RPC}} api.{{$data.Args}}
+type {{$data.RPC}} rpc.{{$data.Args}}
 
 // Call ...
 func (r *{{$data.RPC}}) Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD) {
-	client := api.New{{$data.ServiceClient}}(conn)
-	args := api.{{$data.Args}}(*r)
+	client := rpc.New{{$data.ServiceClient}}(conn)
+	args := rpc.{{$data.Args}}(*r)
 	h := &metadata.MD{}
 	t := &metadata.MD{}
 	reply, err := client.{{$data.RPC}}(ctx, &args, grpc.Header(h), grpc.Trailer(t))
@@ -56,10 +56,10 @@ func New{{$data.RPC}}(in []byte) gshell.RPC {
 }
 
 // {{$data.RPC}}Reply ...
-func {{$data.RPC}}Reply(c *gshell.Client) *api.{{$data.Reply}} {
+func {{$data.RPC}}Reply(c *gshell.Client) *rpc.{{$data.Reply}} {
 	if c.Replies["{{$data.RPC}}"] == nil {
 		return nil
 	}
-	return c.Replies["{{$data.RPC}}"].(*api.{{$data.Reply}})
+	return c.Replies["{{$data.RPC}}"].(*rpc.{{$data.Reply}})
 }
 {{end}}

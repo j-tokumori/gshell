@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/j-tokumori/gshell"
 	"github.com/j-tokumori/gshell/sample/api"
+	"google.golang.org/grpc/status"
 
 	"google.golang.org/grpc/metadata"
 )
@@ -14,10 +16,18 @@ func main() {
 		Host:        "localhost:8080",
 		IsSecure:    false,
 		ContextFunc: Context,
+		ErrorFunc:   PrintGrpcErr,
 		Scenario:    &Scenario{},
 	})
 	register(s)
 	s.Start()
+}
+
+func PrintGrpcErr(err error) {
+	if s, ok := status.FromError(err); ok {
+		fmt.Println("main")
+		fmt.Println(s.Message())
+	}
 }
 
 // Context コンテキスト
