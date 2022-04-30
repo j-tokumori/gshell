@@ -108,7 +108,11 @@ func (c *Client) PrintLastReply() {
 
 func (c *Client) PrintReply(rpcName string) {
 	m := c.Replies[rpcName]
-	j, err := protojson.Marshal(m)
+	o := protojson.MarshalOptions{
+		UseProtoNames:   true,
+		EmitUnpopulated: true,
+	}
+	j, err := o.Marshal(m)
 	if err != nil {
 		panic(err)
 	}
