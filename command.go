@@ -4,18 +4,24 @@ import (
 	"strings"
 )
 
-type CommandFunc func(*Client, string, string)
+type Command interface {
+	Exec(*Client, ...string) bool
+}
 
-func RPCCommand(c *Client, arg1, arg2 string) {
-	parsed := parseArgs(arg2)
-	c.CallByJSON(arg1, []byte(parsed))
-	c.PrintResponse(arg1)
+type RPCCommand struct {
+}
+
+func (c *RPCCommand) Exec(client *Client, args ...string) bool {
+	parsed := c.parseArgs(args[1])
+	client.CallByJSON(args[0], []byte(parsed))
+	client.PrintResponse(args[0])
+	return false
 }
 
 // parseArgs 引数のパース
 // {} を付け足して、key に "" を雑につけているだけの簡易処理
 // value に , や : があったり、入れ子データに対応していなかったりするので、修正必須
-func parseArgs(str string) string {
+func (c *RPCCommand) parseArgs(str string) string {
 	str = strings.TrimSpace(str)
 	if str == "" {
 		return "{}"
@@ -34,4 +40,14 @@ func parseArgs(str string) string {
 		modArgs = append(modArgs, strings.Join(kv[0:2], ":"))
 	}
 	return "{" + strings.Join(modArgs, ",") + "}"
+}
+
+type ScenarioCommand struct {
+	Scenario       interface{}
+	ScenarioPlayer *ScenarioPlayer
+}
+
+func (c *ScenarioCommand) Exec(client *Client, args ...string) bool {
+	c.ScenarioPlayer.Play(client, c.Scenario, args[0])
+	return false
 }

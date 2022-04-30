@@ -12,7 +12,7 @@ import (
 
 type Shell struct {
 	Client         *Client
-	Commands       map[string]CommandFunc
+	Commands       map[string]Command
 	Scenario       interface{}
 	ScenarioPlayer *ScenarioPlayer
 }
@@ -30,19 +30,24 @@ type Config struct {
 func New(cfg Config) *Shell {
 	return &Shell{
 		Client:         NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc, cfg.ErrorFunc),
-		Commands:       make(map[string]CommandFunc, 0),
+		Commands:       make(map[string]Command, 0),
 		Scenario:       cfg.Scenario,
 		ScenarioPlayer: NewScenarioPlayer(),
 	}
 }
 
 func (s *Shell) Start() {
-	s.RegisterCommand(RPCCommand, "rpc", "r")
+	s.RegisterCommand([]string{"rpc", "r", "call"}, &RPCCommand{})
+	s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{s.Scenario, s.ScenarioPlayer})
 
 	s.bootstrap()
 
 	line := liner.NewLiner()
-	defer line.Close()
+	defer func() {
+		if err := line.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	// TODO: wait for signal and kill
 	sigs := make(chan os.Signal, 1)
@@ -76,9 +81,9 @@ func (s *Shell) RegisterRPC(name string, f NewRPCFunc) {
 	s.Client.rpcMap[name] = f
 }
 
-func (s *Shell) RegisterCommand(f CommandFunc, keys ...string) {
+func (s *Shell) RegisterCommand(keys []string, cmd Command) {
 	for _, key := range keys {
-		s.Commands[key] = f
+		s.Commands[key] = cmd
 	}
 }
 
@@ -104,18 +109,12 @@ func (s *Shell) exec(c *Client, line string) bool {
 
 	first, second, third := s.parse(line)
 
-	if f, ok := s.Commands[first]; ok {
-		f(c, second, third)
+	if cmd, ok := s.Commands[first]; ok {
+		cmd.Exec(c, second, third)
 		return false
 	}
 
 	switch first {
-	//case "rpc", "r":
-	//	args := s.parseArgs(third)
-	//	c.CallByJSON(second, []byte(args))
-	//	c.PrintResponse(second)
-	case "scenario", "s":
-		//sce.Call(second)
 	case "response":
 		if second == "" {
 			c.PrintLastResponse()
