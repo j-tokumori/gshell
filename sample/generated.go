@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 
-	api "github.com/j-tokumori/gshell/sample/api"
+	rpc "github.com/j-tokumori/gshell/sample/api"
 
 	"github.com/j-tokumori/gshell"
 
@@ -24,12 +24,12 @@ func register(s *gshell.Shell) {
 }
 
 // Register ...
-type Register api.RegisterArgs
+type Register rpc.RegisterArgs
 
 // Call ...
 func (r *Register) Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD) {
-	client := api.NewAuthServiceClient(conn)
-	args := api.RegisterArgs(*r)
+	client := rpc.NewAuthServiceClient(conn)
+	args := rpc.RegisterArgs(*r)
 	h := &metadata.MD{}
 	t := &metadata.MD{}
 	reply, err := client.Register(ctx, &args, grpc.Header(h), grpc.Trailer(t))
@@ -55,9 +55,9 @@ func NewRegister(in []byte) gshell.RPC {
 }
 
 // RegisterReply ...
-func RegisterReply(c *gshell.Client) *api.RegisterReply {
+func RegisterReply(c *gshell.Client) *rpc.RegisterReply {
 	if c.Replies["Register"] == nil {
 		return nil
 	}
-	return c.Replies["Register"].(*api.RegisterReply)
+	return c.Replies["Register"].(*rpc.RegisterReply)
 }
