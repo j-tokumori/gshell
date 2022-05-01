@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_Samplize(t *testing.T) {
+func Test_samplize(t *testing.T) {
 	type TestStructChild struct {
 		ChildInt32  int32
 		ChildString string
@@ -19,7 +19,7 @@ func Test_Samplize(t *testing.T) {
 	}
 
 	r := &TestStruct{}
-	Samplize(r)
+	samplize(r)
 
 	want := &TestStruct{
 		String:    "hoge",

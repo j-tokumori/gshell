@@ -39,6 +39,16 @@ func New(cfg Config) *Shell {
 func (s *Shell) Start() {
 	s.RegisterCommand([]string{"rpc", "r", "call"}, &RPCCommand{})
 	s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{s.Scenario, s.ScenarioPlayer})
+	s.RegisterCommand([]string{"response"}, &ResponseCommand{})
+	s.RegisterCommand([]string{"reply"}, &ReplyCommand{})
+	s.RegisterCommand([]string{"header"}, &HeaderCommand{})
+	s.RegisterCommand([]string{"trailer"}, &TrailerCommand{})
+	s.RegisterCommand([]string{"sample"}, &SampleCommand{})
+	s.RegisterCommand([]string{"list"}, &ListCommand{})
+	s.RegisterCommand([]string{"trace"}, &TraceCommand{})
+	s.RegisterCommand([]string{""}, &EmptyCommand{})
+	s.RegisterCommand([]string{"help"}, &HelpCommand{})
+	s.RegisterCommand([]string{"exit", "quit"}, &ExitCommand{})
 
 	s.bootstrap()
 
@@ -73,8 +83,6 @@ func (s *Shell) Start() {
 			line.AppendHistory(l)
 		}
 	}
-
-	fmt.Println("exit...")
 }
 
 func (s *Shell) RegisterRPC(name string, f NewRPCFunc) {
@@ -110,56 +118,11 @@ func (s *Shell) exec(c *Client, line string) bool {
 	first, second, third := s.parse(line)
 
 	if cmd, ok := s.Commands[first]; ok {
-		cmd.Exec(c, second, third)
-		return false
+		return cmd.Exec(c, second, third)
 	}
 
-	switch first {
-	case "response":
-		if second == "" {
-			c.PrintLastResponse()
-		} else {
-			c.PrintResponse(second)
-		}
-	case "reply":
-		if second == "" {
-			c.PrintLastReply()
-		} else {
-			c.PrintReply(second)
-		}
-	case "header":
-		if second == "" {
-			c.PrintLastHeader()
-		} else {
-			c.PrintHeader(second)
-		}
-	case "trailer":
-		if second == "" {
-			c.PrintLastTrailer()
-		} else {
-			c.PrintTrailer(second)
-		}
-	case "trace":
-		if second == "" {
-			c.PrintLastTraceURL()
-		} else {
-			c.PrintTraceURL(second)
-		}
-	case "sample":
-		c.PrintSample(second)
-	case "list":
-		if second == "rpc" {
-			c.PrintList(third)
-		}
-	case "":
-	case "exit", "quit":
-		return true
-		//case "help":
-		//default:
-		//	help?
-	default:
-		s.help()
-	}
+	fmt.Println("this command is not support.")
+
 	return false
 }
 
