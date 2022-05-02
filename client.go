@@ -72,14 +72,14 @@ func (c *Client) CallWithRecover(r RPC) {
 }
 
 func (c *Client) Call(r RPC) {
-	Defaultize(r, c)
+	defaultize(r, c)
 	c.LastRPCName = reflect.ValueOf(r).Elem().Type().Name()
 	c.CallWithRecover(r)
 }
 
-// Defaultize 引数 r をデフォルト値で埋める。破壊的メソッド
+// defaultize 引数 r をデフォルト値で埋める。破壊的メソッド
 // TODO: generics で書き直し
-func Defaultize(r interface{}, c *Client) {
+func defaultize(r interface{}, c *Client) {
 	pv := reflect.ValueOf(r)
 	if pv.Kind() != reflect.Ptr {
 		panic("r is need pointer.")

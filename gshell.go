@@ -11,10 +11,8 @@ import (
 )
 
 type Shell struct {
-	Client         *Client
-	Commands       map[string]Command
-	Scenario       interface{}
-	ScenarioPlayer *ScenarioPlayer
+	Client   *Client
+	Commands map[string]Command
 }
 
 type Config struct {
@@ -28,17 +26,12 @@ type Config struct {
 }
 
 func New(cfg Config) *Shell {
-	return &Shell{
-		Client:         NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc, cfg.ErrorFunc),
-		Commands:       make(map[string]Command, 0),
-		Scenario:       cfg.Scenario,
-		ScenarioPlayer: NewScenarioPlayer(),
+	s := &Shell{
+		Client:   NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc, cfg.ErrorFunc),
+		Commands: make(map[string]Command, 0),
 	}
-}
-
-func (s *Shell) Start() {
 	s.RegisterCommand([]string{"rpc", "r", "call"}, &RPCCommand{})
-	s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{s.Scenario, s.ScenarioPlayer})
+	s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{NewScenarioPlayer(cfg.Scenario)})
 	s.RegisterCommand([]string{"response"}, &ResponseCommand{})
 	s.RegisterCommand([]string{"reply"}, &ReplyCommand{})
 	s.RegisterCommand([]string{"header"}, &HeaderCommand{})
@@ -49,6 +42,10 @@ func (s *Shell) Start() {
 	s.RegisterCommand([]string{""}, &EmptyCommand{})
 	s.RegisterCommand([]string{"help"}, &HelpCommand{})
 	s.RegisterCommand([]string{"exit", "quit"}, &ExitCommand{})
+	return s
+}
+
+func (s *Shell) Start() {
 
 	s.bootstrap()
 
@@ -104,7 +101,11 @@ func (s *Shell) bootstrap() {
 		}
 	}()
 
-	s.ScenarioPlayer.Play(s.Client, s.Scenario, "Boot")
+	s.scenario("Boot")
+}
+
+func (s *Shell) scenario(name string) {
+	s.Commands["scenario"].Exec(s.Client, name)
 }
 
 func (s *Shell) exec(c *Client, line string) bool {

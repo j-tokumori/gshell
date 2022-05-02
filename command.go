@@ -54,12 +54,11 @@ func (c *RPCCommand) parseArgs(str string) string {
 }
 
 type ScenarioCommand struct {
-	Scenario       interface{}
 	ScenarioPlayer *ScenarioPlayer
 }
 
 func (c *ScenarioCommand) Exec(client *Client, args ...string) bool {
-	c.ScenarioPlayer.Play(client, c.Scenario, args[0])
+	c.ScenarioPlayer.Play(client, args[0])
 	return false
 }
 
@@ -200,7 +199,7 @@ func printSample(client *Client, rpcName string) {
 	f := client.rpcMap[rpcName]
 	a := f([]byte("{}"))
 
-	Defaultize(a, client)
+	defaultize(a, client)
 	samplize(a)
 
 	j, err := json.Marshal(a)
