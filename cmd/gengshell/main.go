@@ -1,6 +1,9 @@
 package main
 
 import (
+	"embed"
+	_ "embed"
+	"flag"
 	"go/ast"
 	"log"
 	"os"
@@ -12,10 +15,18 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+//go:embed template
+var fs embed.FS
+
 func main() {
-	moduleName := "github.com/j-tokumori/gshell/sample/api"
-	if err := write("cmd/gengshell/template/generated.go.txt",
-		"sample/generated.go", "gofmt", moduleName, GetDataList(moduleName)); err != nil {
+	var module, template, output string
+	flag.StringVar(&module, "module", "github.com/j-tokumori/gshell/sample/api", "module name")
+	flag.StringVar(&template, "template", "", "template file name")
+	flag.StringVar(&output, "output", "sample/generated.go", "output file name")
+
+	flag.Parse()
+
+	if err := write(template, output, "gofmt", module, GetDataList(module)); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -29,8 +40,7 @@ type Data struct {
 
 func GetDataList(moduleName string) []Data {
 	cfg := &packages.Config{Mode: packages.NeedTypes | packages.NeedSyntax} // TODO: 現sampleでは NeedTypes を入れないと、Syntaxが取れない
-	pkgs, err := packages.Load(cfg, "github.com/j-tokumori/gshell/sample/api")
-	//pkgs, err := packages.Load(cfg, "github.com/NamcoBandaiStudios/prism/pb/api")
+	pkgs, err := packages.Load(cfg, moduleName)
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +84,12 @@ func write(templfile, output, fmt string, moduleName string, data []Data) error 
 		//"toLower": strings.ToLower,
 		//"split":   strings.Split,
 	}
-	templ := template.Must(template.New(filepath.Base(templfile)).Funcs(funcMap).ParseFiles(templfile))
+	var templ *template.Template
+	if templfile == "" {
+		templ = template.Must(template.ParseFS(fs, "template/generated.go.txt")).Funcs(funcMap)
+	} else {
+		templ = template.Must(template.New(filepath.Base(templfile)).Funcs(funcMap).ParseFiles(templfile))
+	}
 
 	cmd := exec.Command(fmt)
 	file, err := cmd.StdinPipe()
