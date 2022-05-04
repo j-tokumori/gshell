@@ -17,10 +17,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// register ...
-func register(s *gshell.Shell) {
+// RegisterRPC ...
+func RegisterRPC(s *gshell.Shell) {
 {{ range $i, $data := .DataList }}
-	s.RegisterRPC("{{$data.RPC}}", New{{$data.RPC}}){{end}}
+	s.RegisterRPC(New{{$data.RPC}}){{end}}
 }
 
 {{ range $i, $data := .DataList }}
@@ -38,11 +38,6 @@ func (r *{{$data.RPC}}) Call(ctx context.Context, conn grpc.ClientConnInterface)
 		panic(err)
 	}
 	return reply, h, t
-}
-
-// Key ...
-func (r *{{$data.RPC}}) Key() string {
-	return "{{$data.RPC}}"
 }
 
 // New{{$data.RPC}} ...

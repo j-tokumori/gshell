@@ -13,7 +13,6 @@ import (
 
 type RPC interface {
 	Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD)
-	Key() string
 }
 
 type NewRPCFunc func([]byte) RPC
@@ -66,15 +65,26 @@ func (c *Client) CallWithRecover(r RPC) {
 	}()
 
 	rep, h, t := r.Call(c.ContextFunc(context.Background(), c), c.Conn)
-	c.Replies[r.Key()] = rep
-	c.Headers[r.Key()] = h
-	c.Trailers[r.Key()] = t
+
+	key := getKey(r)
+
+	c.Replies[key] = rep
+	c.Headers[key] = h
+	c.Trailers[key] = t
 }
 
 func (c *Client) Call(r RPC) {
 	defaultize(r, c)
 	c.LastRPCName = reflect.ValueOf(r).Elem().Type().Name()
 	c.CallWithRecover(r)
+}
+
+func (c *Client) registerRPC(f NewRPCFunc) {
+	c.rpcMap[getKey(f([]byte("{}")))] = f
+}
+
+func getKey(r RPC) string {
+	return reflect.ValueOf(r).Elem().Type().Name()
 }
 
 // defaultize 引数 r をデフォルト値で埋める。破壊的メソッド

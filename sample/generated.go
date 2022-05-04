@@ -17,10 +17,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// register ...
-func register(s *gshell.Shell) {
+// RegisterRPC ...
+func RegisterRPC(s *gshell.Shell) {
 
-	s.RegisterRPC("Register", NewRegister)
+	s.RegisterRPC(NewRegister)
 }
 
 // Register ...
@@ -37,11 +37,6 @@ func (r *Register) Call(ctx context.Context, conn grpc.ClientConnInterface) (pro
 		panic(err)
 	}
 	return reply, h, t
-}
-
-// Key ...
-func (r *Register) Key() string {
-	return "Register"
 }
 
 // NewRegister ...

@@ -7,8 +7,6 @@ import (
 	"github.com/j-tokumori/gshell"
 	"github.com/j-tokumori/gshell/sample/api"
 	"google.golang.org/grpc/status"
-
-	"google.golang.org/grpc/metadata"
 )
 
 func main() {
@@ -19,7 +17,7 @@ func main() {
 		ErrorFunc:   PrintGrpcErr,
 		Scenario:    &Scenario{},
 	})
-	register(s)
+	RegisterRPC(s)
 	s.Start()
 }
 
@@ -32,30 +30,8 @@ func PrintGrpcErr(err error) {
 
 // Context コンテキスト
 func Context(ctx context.Context, c *gshell.Client) context.Context {
-	//if c.Replies.Login != nil {
-	if RegisterReply(c) != nil {
-		//ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+c.Replies.Login.GetToken())
-		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+RegisterReply(c).GetUserId())
-	}
-	//if c.Config.Trace GetToken{
-	//	span := trace.FromContext(ctx)
-	//	if span == nil {
-	//		return ctx
-	//	}
-	//	// HTTP Header
-	//	ctx = metadata.AppendToOutgoingContext(ctx, "X-Cloud-Trace-Context", fmt.Sprintf("%s/%s;o=1", span.SpanContext().TraceID.String(), "1"))
-	//	// gRPC Header
-	//	traceContext := trace.SpanContext{
-	//		TraceID:      span.SpanContext().TraceID,
-	//		SpanID:       span.SpanContext().SpanID,
-	//		TraceOptions: 1,
-	//	}
-	//	ctx = metadata.AppendToOutgoingContext(ctx, "grpc-trace-bin", string(propagation.Binary(traceContext)))
-	//}
 	return ctx
 }
-
-// 以下手書きのシナリオ
 
 type Scenario struct {
 }

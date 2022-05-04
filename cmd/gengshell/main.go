@@ -2,7 +2,6 @@ package main
 
 import (
 	"embed"
-	_ "embed"
 	"flag"
 	"go/ast"
 	"log"
@@ -20,9 +19,9 @@ var fs embed.FS
 
 func main() {
 	var module, template, output string
-	flag.StringVar(&module, "module", "github.com/j-tokumori/gshell/sample/api", "module name")
+	flag.StringVar(&module, "module", "", "module name")
 	flag.StringVar(&template, "template", "", "template file name")
-	flag.StringVar(&output, "output", "sample/generated.go", "output file name")
+	flag.StringVar(&output, "output", "./generated.go", "output file name")
 
 	flag.Parse()
 

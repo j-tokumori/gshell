@@ -46,7 +46,6 @@ func New(cfg Config) *Shell {
 }
 
 func (s *Shell) Start() {
-
 	s.bootstrap()
 
 	line := liner.NewLiner()
@@ -82,8 +81,8 @@ func (s *Shell) Start() {
 	}
 }
 
-func (s *Shell) RegisterRPC(name string, f NewRPCFunc) {
-	s.Client.rpcMap[name] = f
+func (s *Shell) RegisterRPC(f NewRPCFunc) {
+	s.Client.registerRPC(f)
 }
 
 func (s *Shell) RegisterCommand(keys []string, cmd Command) {
