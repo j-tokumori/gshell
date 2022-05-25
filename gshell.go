@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/peterh/liner"
+	"google.golang.org/grpc/encoding"
 )
 
 type Shell struct {
@@ -18,6 +19,7 @@ type Shell struct {
 type Config struct {
 	Host     string
 	IsSecure bool
+	Codec    encoding.Codec
 
 	ContextFunc ContextFunc
 	ErrorFunc   ErrorFunc
@@ -27,7 +29,7 @@ type Config struct {
 
 func New(cfg Config) *Shell {
 	s := &Shell{
-		Client:   NewClient(cfg.Host, cfg.IsSecure, cfg.ContextFunc, cfg.ErrorFunc),
+		Client:   NewClient(cfg.Host, cfg.IsSecure, cfg.Codec, cfg.ContextFunc, cfg.ErrorFunc),
 		Commands: make(map[string]Command, 0),
 	}
 	s.RegisterCommand([]string{"rpc", "r", "call"}, &RPCCommand{})

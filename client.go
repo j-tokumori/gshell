@@ -7,6 +7,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
@@ -32,13 +34,17 @@ type Client struct {
 	LastRPCName string
 }
 
-func NewClient(host string, secure bool, ctxFunc ContextFunc, errFunc ErrorFunc) *Client {
-	opt := grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
-	if !secure {
-		opt = grpc.WithInsecure()
+func NewClient(host string, secure bool, codec encoding.Codec, ctxFunc ContextFunc, errFunc ErrorFunc) *Client {
+	opts := make([]grpc.DialOption, 0)
+	if secure {
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	//conn, err := grpc.Dial(host, opt, grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
-	conn, err := grpc.Dial(host, opt)
+	if codec != nil {
+		opts = append(opts, grpc.WithDefaultCallOptions(grpc.ForceCodec(codec)))
+	}
+	conn, err := grpc.Dial(host, opts...)
 	if err != nil {
 		panic(err)
 	}
