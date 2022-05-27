@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/peterh/liner"
-	"google.golang.org/grpc/encoding"
 )
 
 type Shell struct {
@@ -16,28 +15,25 @@ type Shell struct {
 	Commands map[string]Command
 }
 
-type Config struct {
-	Host     string
-	IsSecure bool
-	Codec    encoding.Codec
+func New(host string, opts ...Option) *Shell {
+	options := &options{}
+	for _, opt := range opts {
+		opt.apply(options)
+	}
 
-	ContextFunc ContextFunc
-	ErrorFunc   ErrorFunc
-
-	Scenario interface{}
-}
-
-func New(cfg Config) *Shell {
 	s := &Shell{
-		Client:   NewClient(cfg.Host, cfg.IsSecure, cfg.Codec, cfg.ContextFunc, cfg.ErrorFunc),
+		Client:   NewClient(host, options),
 		Commands: make(map[string]Command, 0),
 	}
 	s.RegisterCommand([]string{"rpc", "r", "call"}, &RPCCommand{})
-	s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{NewScenarioPlayer(cfg.Scenario)})
+	if options.scenarioFactory != nil {
+		scenario := options.scenarioFactory(s.Client)
+		s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{NewScenarioPlayer(scenario)})
+	}
 	s.RegisterCommand([]string{"response"}, &ResponseCommand{})
 	s.RegisterCommand([]string{"reply"}, &ReplyCommand{})
-	s.RegisterCommand([]string{"header"}, &HeaderCommand{})
-	s.RegisterCommand([]string{"trailer"}, &TrailerCommand{})
+	s.RegisterCommand([]string{"Header"}, &HeaderCommand{})
+	s.RegisterCommand([]string{"Trailer"}, &TrailerCommand{})
 	s.RegisterCommand([]string{"sample"}, &SampleCommand{})
 	s.RegisterCommand([]string{"list"}, &ListCommand{})
 	s.RegisterCommand([]string{"trace"}, &TraceCommand{})
@@ -83,10 +79,6 @@ func (s *Shell) Start() {
 	}
 }
 
-func (s *Shell) RegisterRPC(f NewRPCFunc) {
-	s.Client.registerRPC(f)
-}
-
 func (s *Shell) RegisterCommand(keys []string, cmd Command) {
 	for _, key := range keys {
 		s.Commands[key] = cmd
@@ -106,7 +98,9 @@ func (s *Shell) bootstrap() {
 }
 
 func (s *Shell) scenario(name string) {
-	s.Commands["scenario"].Exec(s.Client, name)
+	if cmd, ok := s.Commands["scenario"]; ok {
+		cmd.Exec(s.Client, name)
+	}
 }
 
 func (s *Shell) exec(c *Client, line string) bool {

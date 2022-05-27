@@ -11,16 +11,14 @@ import (
     rpc "{{ .ModuleName }}"
 
 	"github.com/j-tokumori/gshell"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
 )
 
 // RegisterRPC ...
-func RegisterRPC(s *gshell.Shell) {
-{{ range $i, $data := .DataList }}
-	s.RegisterRPC(New{{$data.RPC}}){{end}}
+func RegisterRPC() gshell.Option {
+	return gshell.RegisterRPCFactories(
+{{ range $i, $data := .DataList }}        New{{$data.RPC}},
+{{end}}
+	)
 }
 
 {{ range $i, $data := .DataList }}
@@ -28,16 +26,12 @@ func RegisterRPC(s *gshell.Shell) {
 type {{$data.RPC}} rpc.{{$data.Args}}
 
 // Call ...
-func (r *{{$data.RPC}}) Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD) {
+func (r *{{$data.RPC}}) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
 	client := rpc.New{{$data.ServiceClient}}(conn)
 	args := rpc.{{$data.Args}}(*r)
-	h := &metadata.MD{}
-	t := &metadata.MD{}
-	reply, err := client.{{$data.RPC}}(ctx, &args, grpc.Header(h), grpc.Trailer(t))
-	if err != nil {
-		panic(err)
-	}
-	return reply, h, t
+	res = gshell.NewEmptyResponse()
+	res.Reply, err = client.{{$data.RPC}}(ctx, &args, gshell.ResponseOptions(res)...)
+	return res, err
 }
 
 // New{{$data.RPC}} ...
@@ -52,9 +46,9 @@ func New{{$data.RPC}}(in []byte) gshell.RPC {
 
 // {{$data.RPC}}Reply ...
 func {{$data.RPC}}Reply(c *gshell.Client) *rpc.{{$data.Reply}} {
-	if c.Replies["{{$data.RPC}}"] == nil {
-		return nil
+	if res := c.Response("{{$data.RPC}}"); res != nil {
+		return res.Reply.(*rpc.{{$data.Reply}})
 	}
-	return c.Replies["{{$data.RPC}}"].(*rpc.{{$data.Reply}})
+	return nil
 }
 {{end}}

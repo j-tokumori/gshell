@@ -11,32 +11,25 @@ import (
 	rpc "github.com/j-tokumori/gshell/sample/api"
 
 	"github.com/j-tokumori/gshell"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
 )
 
 // RegisterRPC ...
-func RegisterRPC(s *gshell.Shell) {
-
-	s.RegisterRPC(NewRegister)
+func RegisterRPC() gshell.Option {
+	return gshell.RegisterRPCFactories(
+		NewRegister,
+	)
 }
 
 // Register ...
 type Register rpc.RegisterArgs
 
 // Call ...
-func (r *Register) Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD) {
+func (r *Register) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
 	client := rpc.NewAuthServiceClient(conn)
 	args := rpc.RegisterArgs(*r)
-	h := &metadata.MD{}
-	t := &metadata.MD{}
-	reply, err := client.Register(ctx, &args, grpc.Header(h), grpc.Trailer(t))
-	if err != nil {
-		panic(err)
-	}
-	return reply, h, t
+	res = gshell.NewEmptyResponse()
+	res.Reply, err = client.Register(ctx, &args, gshell.ResponseOptions(res)...)
+	return res, err
 }
 
 // NewRegister ...
@@ -51,8 +44,8 @@ func NewRegister(in []byte) gshell.RPC {
 
 // RegisterReply ...
 func RegisterReply(c *gshell.Client) *rpc.RegisterReply {
-	if c.Replies["Register"] == nil {
-		return nil
+	if res := c.Response("Register"); res != nil {
+		return res.Reply.(*rpc.RegisterReply)
 	}
-	return c.Replies["Register"].(*rpc.RegisterReply)
+	return nil
 }

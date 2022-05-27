@@ -2,91 +2,83 @@ package gshell
 
 import (
 	"context"
-	"crypto/tls"
 	"reflect"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
 
+type Conn = grpc.ClientConnInterface
+
 type RPC interface {
-	Call(ctx context.Context, conn grpc.ClientConnInterface) (proto.Message, *metadata.MD, *metadata.MD)
+	Call(ctx context.Context, conn Conn) (*Response, error)
 }
 
-type NewRPCFunc func([]byte) RPC
+type RPCFactory func([]byte) RPC
 
-type ContextFunc func(context.Context, *Client) context.Context
+type ErrorHandler func(error)
 
-type ErrorFunc func(error)
+type Response struct {
+	Reply   proto.Message
+	Header  *metadata.MD
+	Trailer *metadata.MD
+}
+
+func NewEmptyResponse() *Response {
+	return &Response{Header: &metadata.MD{}, Trailer: &metadata.MD{}}
+}
 
 type Client struct {
-	Conn        grpc.ClientConnInterface
-	ContextFunc ContextFunc
-	ErrorFunc   ErrorFunc
-	rpcMap      map[string]NewRPCFunc
-	Replies     map[string]proto.Message
-	Headers     map[string]*metadata.MD
-	Trailers    map[string]*metadata.MD
-	LastRPCName string
+	conn        grpc.ClientConnInterface
+	opts        *options
+	responses   map[string]*Response
+	lastRPCName string
 }
 
-func NewClient(host string, secure bool, codec encoding.Codec, ctxFunc ContextFunc, errFunc ErrorFunc) *Client {
-	opts := make([]grpc.DialOption, 0)
-	if secure {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
-	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	}
-	if codec != nil {
-		opts = append(opts, grpc.WithDefaultCallOptions(grpc.ForceCodec(codec)))
-	}
-	conn, err := grpc.Dial(host, opts...)
+func NewClient(host string, opts *options) *Client {
+	conn, err := grpc.Dial(host, opts.grpcDialOptions...)
 	if err != nil {
 		panic(err)
 	}
 	return &Client{
-		Conn:        conn,
-		ContextFunc: ctxFunc,
-		ErrorFunc:   errFunc,
-		rpcMap:      make(map[string]NewRPCFunc),
-		Replies:     make(map[string]proto.Message),
-		Headers:     make(map[string]*metadata.MD),
-		Trailers:    make(map[string]*metadata.MD),
+		conn:      conn,
+		opts:      opts,
+		responses: make(map[string]*Response),
 	}
 }
 
-func (c *Client) CallWithRecover(r RPC) {
-	defer func() {
-		rec := recover()
-		if err, ok := rec.(error); ok {
-			c.ErrorFunc(err)
-		}
-		if rec != nil {
-			panic(rec)
-		}
-	}()
+func (c *Client) Response(name string) *Response {
+	return c.responses[name]
+}
 
-	rep, h, t := r.Call(c.ContextFunc(context.Background(), c), c.Conn)
-
-	key := getKey(r)
-
-	c.Replies[key] = rep
-	c.Headers[key] = h
-	c.Trailers[key] = t
+func (c *Client) LastRPCName() string {
+	return c.lastRPCName
 }
 
 func (c *Client) Call(r RPC) {
 	defaultize(r, c)
-	c.LastRPCName = reflect.ValueOf(r).Elem().Type().Name()
-	c.CallWithRecover(r)
+	c.lastRPCName = reflect.ValueOf(r).Elem().Type().Name()
+
+	res, err := c.Invoke(context.Background(), r)
+	if err != nil {
+		if c.opts.errorHandler != nil {
+			c.opts.errorHandler(err)
+		}
+	}
+
+	c.responses[getKey(r)] = res
 }
 
-func (c *Client) registerRPC(f NewRPCFunc) {
-	c.rpcMap[getKey(f([]byte("{}")))] = f
+func (c *Client) Invoke(ctx context.Context, r RPC) (*Response, error) {
+	if c.opts.callingInt != nil {
+		return c.opts.callingInt(ctx, c, r, invoke)
+	}
+	return invoke(ctx, c, r)
+}
+
+func invoke(ctx context.Context, c *Client, r RPC) (*Response, error) {
+	return r.Call(ctx, c.conn)
 }
 
 func getKey(r RPC) string {
@@ -131,5 +123,12 @@ func defaultize(r interface{}, c *Client) {
 		if isZero {
 			pv.Elem().FieldByName(field.Name).Set(dv.Elem().FieldByName(field.Name))
 		}
+	}
+}
+
+func ResponseOptions(res *Response) []grpc.CallOption {
+	return []grpc.CallOption{
+		grpc.Header(res.Header),
+		grpc.Trailer(res.Trailer),
 	}
 }

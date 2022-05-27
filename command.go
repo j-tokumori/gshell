@@ -22,7 +22,7 @@ type RPCCommand struct {
 
 func (c *RPCCommand) Exec(client *Client, args ...string) bool {
 	parsed := c.parseArgs(args[1])
-	f := client.rpcMap[args[0]]
+	f := client.opts.rpcMap[args[0]]
 	rpc := f([]byte(parsed))
 	client.Call(rpc)
 	printResponse(client, args[0])
@@ -58,7 +58,11 @@ type ScenarioCommand struct {
 }
 
 func (c *ScenarioCommand) Exec(client *Client, args ...string) bool {
-	c.ScenarioPlayer.Play(client, args[0])
+	var sArgs []string
+	if len(args) > 1 {
+		sArgs = strings.Split(strings.TrimSpace(args[1]), " ")
+	}
+	c.ScenarioPlayer.Play(client, args[0], sArgs...)
 	return false
 }
 
@@ -67,7 +71,7 @@ type ResponseCommand struct {
 
 func (c *ResponseCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
-		printResponse(client, client.LastRPCName)
+		printResponse(client, client.lastRPCName)
 	} else {
 		printResponse(client, args[0])
 	}
@@ -79,9 +83,9 @@ type ReplyCommand struct {
 
 func (c *ReplyCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
-		printReply(client.Replies[client.LastRPCName])
+		printReply(client.responses[client.lastRPCName].Reply)
 	} else {
-		printReply(client.Replies[args[0]])
+		printReply(client.responses[args[0]].Reply)
 	}
 	return false
 }
@@ -91,9 +95,9 @@ type HeaderCommand struct {
 
 func (c *HeaderCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
-		printMD(client.Headers[client.LastRPCName])
+		printMD(client.responses[client.lastRPCName].Header)
 	} else {
-		printMD(client.Headers[args[0]])
+		printMD(client.responses[args[0]].Header)
 	}
 	return false
 }
@@ -103,9 +107,9 @@ type TrailerCommand struct {
 
 func (c *TrailerCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
-		printMD(client.Trailers[client.LastRPCName])
+		printMD(client.responses[client.lastRPCName].Trailer)
 	} else {
-		printMD(client.Trailers[args[0]])
+		printMD(client.responses[args[0]].Trailer)
 	}
 	return false
 }
@@ -123,7 +127,7 @@ type ListCommand struct {
 
 func (c *ListCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "rpc" {
-		printRPCList(client.rpcMap, args[1])
+		printRPCList(client.opts.rpcMap, args[1])
 	}
 	return false
 }
@@ -133,9 +137,9 @@ type TraceCommand struct {
 
 func (c *TraceCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
-		printCloudTraceURL(client.Headers[client.LastRPCName])
+		printCloudTraceURL(client.responses[client.lastRPCName].Header)
 	} else {
-		printCloudTraceURL(client.Headers[args[0]])
+		printCloudTraceURL(client.responses[args[0]].Header)
 	}
 	return false
 }
@@ -165,11 +169,11 @@ func (c *ExitCommand) Exec(client *Client, args ...string) bool {
 
 func printResponse(client *Client, rpcName string) {
 	fmt.Println("Header:")
-	printMD(client.Headers[rpcName])
+	printMD(client.responses[rpcName].Header)
 	fmt.Println("Trailer:")
-	printMD(client.Trailers[rpcName])
+	printMD(client.responses[rpcName].Trailer)
 	fmt.Println("Reply:")
-	printReply(client.Replies[rpcName])
+	printReply(client.responses[rpcName].Reply)
 }
 
 func printReply(reply proto.Message) {
@@ -196,7 +200,7 @@ func printMD(md *metadata.MD) {
 }
 
 func printSample(client *Client, rpcName string) {
-	f := client.rpcMap[rpcName]
+	f := client.opts.rpcMap[rpcName]
 	a := f([]byte("{}"))
 
 	defaultize(a, client)
@@ -272,7 +276,7 @@ func samplize(r interface{}) {
 	}
 }
 
-func printRPCList(rpcMap map[string]NewRPCFunc, search string) {
+func printRPCList(rpcMap map[string]RPCFactory, search string) {
 	nameList := make([]string, 0)
 	for key := range rpcMap {
 		nameList = append(nameList, key)
@@ -288,7 +292,7 @@ func printRPCList(rpcMap map[string]NewRPCFunc, search string) {
 func printCloudTraceURL(md *metadata.MD) {
 	s := md.Get("x-cloud-trace-context")
 	if len(s) <= 0 {
-		fmt.Println("no trace header.")
+		fmt.Println("no trace Header.")
 		return
 	}
 	s1 := strings.Split(s[0], ";")
