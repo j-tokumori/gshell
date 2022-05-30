@@ -65,6 +65,7 @@ func (c *Client) Call(r RPC) {
 		if c.opts.errorHandler != nil {
 			c.opts.errorHandler(err)
 		}
+		panic(err)
 	}
 
 	c.responses[getKey(r)] = res
