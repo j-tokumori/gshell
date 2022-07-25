@@ -17,8 +17,6 @@ type RPC interface {
 
 type RPCFactory func([]byte) RPC
 
-type ErrorHandler func(error)
-
 type Response struct {
 	Reply   proto.Message
 	Header  *metadata.MD
