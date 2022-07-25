@@ -13,8 +13,16 @@ type options struct {
 	callingInt      CallingInterceptor
 	grpcDialOptions []grpc.DialOption
 	rpcMap          map[string]RPCFactory
+	rpcAliasHandler RPCAliasHandler
 	scenarioFactory ScenarioFactory
-	errorHandler    ErrorHandler
+}
+
+type RPCFactory func([]byte) RPC
+
+type RPCAliasHandler func(serviceName, methodName string) string
+
+func defaultRPCAliasHandler(serviceName, methodName string) string {
+	return serviceName + "." + methodName
 }
 
 type Option interface {
@@ -65,7 +73,7 @@ func RegisterRPCFactories(funcList ...RPCFactory) Option {
 			o.rpcMap = make(map[string]RPCFactory, 0)
 		}
 		for _, f := range funcList {
-			o.rpcMap[getKey(f([]byte("{}")))] = f
+			o.rpcMap[getRPCTypeName(f([]byte("{}")))] = f
 		}
 	})
 }
@@ -76,8 +84,8 @@ func RegisterScenarioFactory(f ScenarioFactory) Option {
 	})
 }
 
-func RegisterErrorHandler(f ErrorHandler) Option {
+func RegisterRPCAliasHandler(f RPCAliasHandler) Option {
 	return newFuncOption(func(o *options) {
-		o.errorHandler = f
+		o.rpcAliasHandler = f
 	})
 }

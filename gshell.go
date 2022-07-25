@@ -21,11 +21,15 @@ func New(host string, opts ...Option) *Shell {
 		opt.apply(options)
 	}
 
+	if options.rpcAliasHandler == nil {
+		options.rpcAliasHandler = defaultRPCAliasHandler
+	}
+
 	s := &Shell{
 		Client:   NewClient(host, options),
 		Commands: make(map[string]Command, 0),
 	}
-	s.RegisterCommand([]string{"rpc", "r", "call"}, &RPCCommand{})
+	s.RegisterCommand([]string{"rpc", "r", "call"}, NewRPCCommand(options.rpcMap, options.rpcAliasHandler))
 	if options.scenarioFactory != nil {
 		scenario := options.scenarioFactory(s.Client)
 		s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{NewScenarioPlayer(scenario)})
