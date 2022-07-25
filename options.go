@@ -14,7 +14,6 @@ type options struct {
 	grpcDialOptions []grpc.DialOption
 	rpcMap          map[string]RPCFactory
 	scenarioFactory ScenarioFactory
-	errorHandler    ErrorHandler
 }
 
 type Option interface {
@@ -73,11 +72,5 @@ func RegisterRPCFactories(funcList ...RPCFactory) Option {
 func RegisterScenarioFactory(f ScenarioFactory) Option {
 	return newFuncOption(func(o *options) {
 		o.scenarioFactory = f
-	})
-}
-
-func RegisterErrorHandler(f ErrorHandler) Option {
-	return newFuncOption(func(o *options) {
-		o.errorHandler = f
 	})
 }

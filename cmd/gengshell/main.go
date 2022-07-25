@@ -31,10 +31,12 @@ func main() {
 }
 
 type Data struct {
-	ServiceClient string
-	RPC           string
-	Args          string
-	Reply         string
+	ClientFactory   string
+	RPCType         string
+	OriginArgsType  string
+	OriginReplyType string
+	RPCFactory      string
+	ReplyGetter     string
 }
 
 func GetDataList(moduleName string) []Data {
@@ -53,14 +55,34 @@ func GetDataList(moduleName string) []Data {
 					if t.Name.IsExported() {
 						switch tt := t.Type.(type) {
 						case *ast.InterfaceType:
-							if regexp.MustCompile(`Client$`).Match([]byte(t.Name.Name)) {
+							rep := regexp.MustCompile(`ServiceClient$`)
+							if rep.Match([]byte(t.Name.Name)) {
 								for _, m := range tt.Methods.List {
-									println(t.Name.Name, m.Names[0].Name)
+									// 第２引数が Args であることを決め打ち
+									// 第１返値が Reply であることを決め打ち
+									var originArgsType, originReplyType, replyGetter string
+									switch args := m.Type.(*ast.FuncType).Params.List[1].Type.(*ast.StarExpr).X; args.(type) {
+									case *ast.SelectorExpr:
+										originArgsType = "emptypb.Empty"
+									default:
+										originArgsType = "rpc." + args.(*ast.Ident).Name
+									}
+
+									switch reply := m.Type.(*ast.FuncType).Results.List[0].Type.(*ast.StarExpr).X; reply.(type) {
+									case *ast.SelectorExpr:
+										originReplyType = "emptypb.Empty"
+										replyGetter = "Get" + rep.ReplaceAllString(t.Name.Name, "") + m.Names[0].Name + "Reply"
+									default:
+										originReplyType = "rpc." + reply.(*ast.Ident).Name
+										replyGetter = "Get" + reply.(*ast.Ident).Name
+									}
 									dataList = append(dataList, Data{
-										t.Name.Name,
-										m.Names[0].Name,
-										m.Type.(*ast.FuncType).Params.List[1].Type.(*ast.StarExpr).X.(*ast.Ident).Name,  // 第２引数が Args であることを決め打ち
-										m.Type.(*ast.FuncType).Results.List[0].Type.(*ast.StarExpr).X.(*ast.Ident).Name, // 第１返値が Reply であることを決め打ち
+										ClientFactory:   "rpc.New" + t.Name.Name,
+										RPCType:         m.Names[0].Name,
+										OriginArgsType:  originArgsType,
+										OriginReplyType: originReplyType,
+										RPCFactory:      "New" + m.Names[0].Name,
+										ReplyGetter:     replyGetter,
 									})
 								}
 							}

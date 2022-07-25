@@ -62,10 +62,7 @@ func (c *Client) Call(r RPC) {
 
 	res, err := c.Invoke(context.Background(), r)
 	if err != nil {
-		if c.opts.errorHandler != nil {
-			c.opts.errorHandler(err)
-		}
-		panic(err)
+		panic(err) // TODO: return?
 	}
 
 	c.responses[getKey(r)] = res
