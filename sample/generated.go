@@ -18,16 +18,16 @@ type _ = emptypb.Empty
 // RegisterRPC ...
 func RegisterRPC() gshell.Option {
 	return gshell.RegisterRPCFactories(
-		NewCreateUser,
-		NewLogin,
+		NewAuthService_CreateUser,
+		NewAuthService_Login,
 	)
 }
 
-// CreateUser ...
-type CreateUser emptypb.Empty
+// AuthService_CreateUser ...
+type AuthService_CreateUser emptypb.Empty
 
 // Call ...
-func (r *CreateUser) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
+func (r *AuthService_CreateUser) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
 	client := rpc.NewAuthServiceClient(conn)
 	args := emptypb.Empty(*r)
 	res = gshell.NewEmptyResponse()
@@ -35,9 +35,9 @@ func (r *CreateUser) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Re
 	return res, err
 }
 
-// NewCreateUser ...
-func NewCreateUser(in []byte) gshell.RPC {
-	r := &CreateUser{}
+// NewAuthService_CreateUser ...
+func NewAuthService_CreateUser(in []byte) gshell.RPC {
+	r := &AuthService_CreateUser{}
 	err := json.Unmarshal(in, r)
 	if err != nil {
 		panic(err)
@@ -45,19 +45,19 @@ func NewCreateUser(in []byte) gshell.RPC {
 	return r
 }
 
-// GetAuthCreateUserReply ...
-func GetAuthCreateUserReply(c *gshell.Client) *rpc.AuthCreateUserReply {
-	if res := c.Response("CreateUser"); res != nil {
+// GetAuthService_CreateUserReply ...
+func GetAuthService_CreateUserReply(c *gshell.Client) *rpc.AuthCreateUserReply {
+	if res := c.Response("AuthService_CreateUser"); res != nil {
 		return res.Reply.(*rpc.AuthCreateUserReply)
 	}
 	return nil
 }
 
-// Login ...
-type Login rpc.AuthLoginArgs
+// AuthService_Login ...
+type AuthService_Login rpc.AuthLoginArgs
 
 // Call ...
-func (r *Login) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
+func (r *AuthService_Login) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
 	client := rpc.NewAuthServiceClient(conn)
 	args := rpc.AuthLoginArgs(*r)
 	res = gshell.NewEmptyResponse()
@@ -65,9 +65,9 @@ func (r *Login) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Respons
 	return res, err
 }
 
-// NewLogin ...
-func NewLogin(in []byte) gshell.RPC {
-	r := &Login{}
+// NewAuthService_Login ...
+func NewAuthService_Login(in []byte) gshell.RPC {
+	r := &AuthService_Login{}
 	err := json.Unmarshal(in, r)
 	if err != nil {
 		panic(err)
@@ -75,9 +75,9 @@ func NewLogin(in []byte) gshell.RPC {
 	return r
 }
 
-// GetAuthLoginReply ...
-func GetAuthLoginReply(c *gshell.Client) *rpc.AuthLoginReply {
-	if res := c.Response("Login"); res != nil {
+// GetAuthService_LoginReply ...
+func GetAuthService_LoginReply(c *gshell.Client) *rpc.AuthLoginReply {
+	if res := c.Response("AuthService_Login"); res != nil {
 		return res.Reply.(*rpc.AuthLoginReply)
 	}
 	return nil

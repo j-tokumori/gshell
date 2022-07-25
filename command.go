@@ -18,14 +18,26 @@ type Command interface {
 }
 
 type RPCCommand struct {
+	aliasMap map[string]string
+}
+
+func NewRPCCommand(rpcMap map[string]RPCFactory, f RPCAliasHandler) *RPCCommand {
+	c := &RPCCommand{}
+	c.aliasMap = make(map[string]string, len(rpcMap))
+	for key, rpc := range rpcMap {
+		s, m := getServiceAndMethodName(rpc([]byte("{}")))
+		c.aliasMap[f(s, m)] = key
+	}
+	return c
 }
 
 func (c *RPCCommand) Exec(client *Client, args ...string) bool {
 	parsed := c.parseArgs(args[1])
-	f := client.opts.rpcMap[args[0]]
+	rpcTypeName := c.getRPCTypeName(args[0])
+	f := client.opts.rpcMap[rpcTypeName]
 	rpc := f([]byte(parsed))
 	client.Call(rpc)
-	printResponse(client, args[0])
+	printResponse(client, rpcTypeName)
 	return false
 }
 
@@ -51,6 +63,13 @@ func (c *RPCCommand) parseArgs(str string) string {
 		modArgs = append(modArgs, strings.Join(kv[0:2], ":"))
 	}
 	return "{" + strings.Join(modArgs, ",") + "}"
+}
+
+func (c *RPCCommand) getRPCTypeName(arg string) string {
+	if key, ok := c.aliasMap[arg]; ok {
+		return key
+	}
+	return arg
 }
 
 type ScenarioCommand struct {

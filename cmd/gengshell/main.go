@@ -31,12 +31,10 @@ func main() {
 }
 
 type Data struct {
-	ClientFactory   string
-	RPCType         string
+	ServiceName     string
+	MethodName      string
 	OriginArgsType  string
 	OriginReplyType string
-	RPCFactory      string
-	ReplyGetter     string
 }
 
 func GetDataList(moduleName string) []Data {
@@ -50,50 +48,61 @@ func GetDataList(moduleName string) []Data {
 	for _, pkg := range pkgs {
 		for _, syntax := range pkg.Syntax {
 			ast.Inspect(syntax, func(n ast.Node) bool {
-				switch t := n.(type) {
-				case *ast.TypeSpec:
-					if t.Name.IsExported() {
-						switch tt := t.Type.(type) {
-						case *ast.InterfaceType:
-							rep := regexp.MustCompile(`ServiceClient$`)
-							if rep.Match([]byte(t.Name.Name)) {
-								for _, m := range tt.Methods.List {
-									// 第２引数が Args であることを決め打ち
-									// 第１返値が Reply であることを決め打ち
-									var originArgsType, originReplyType, replyGetter string
-									switch args := m.Type.(*ast.FuncType).Params.List[1].Type.(*ast.StarExpr).X; args.(type) {
-									case *ast.SelectorExpr:
-										originArgsType = "emptypb.Empty"
-									default:
-										originArgsType = "rpc." + args.(*ast.Ident).Name
-									}
-
-									switch reply := m.Type.(*ast.FuncType).Results.List[0].Type.(*ast.StarExpr).X; reply.(type) {
-									case *ast.SelectorExpr:
-										originReplyType = "emptypb.Empty"
-										replyGetter = "Get" + rep.ReplaceAllString(t.Name.Name, "") + m.Names[0].Name + "Reply"
-									default:
-										originReplyType = "rpc." + reply.(*ast.Ident).Name
-										replyGetter = "Get" + reply.(*ast.Ident).Name
-									}
-									dataList = append(dataList, Data{
-										ClientFactory:   "rpc.New" + t.Name.Name,
-										RPCType:         m.Names[0].Name,
-										OriginArgsType:  originArgsType,
-										OriginReplyType: originReplyType,
-										RPCFactory:      "New" + m.Names[0].Name,
-										ReplyGetter:     replyGetter,
-									})
-								}
-							}
-						}
-					}
+				t, ok := n.(*ast.TypeSpec)
+				if !ok {
+					return true
 				}
+
+				if !t.Name.IsExported() {
+					return true
+				}
+
+				tt, ok := t.Type.(*ast.InterfaceType)
+				if !ok {
+					return true
+				}
+
+				rep := regexp.MustCompile(`Client$`)
+				if !rep.Match([]byte(t.Name.Name)) {
+					return true
+				}
+
+				for _, m := range tt.Methods.List {
+					getData(t.Name.Name, m)
+					dataList = append(dataList, getData(t.Name.Name, m))
+				}
+
 				return true
 			})
 		}
 	}
 	return dataList
+}
+
+func getData(clientName string, m *ast.Field) Data {
+	rep := regexp.MustCompile(`Client$`)
+	// 第２引数が Args であることを決め打ち
+	// 第１返値が Reply であることを決め打ち
+	var originArgsType, originReplyType string
+	switch args := m.Type.(*ast.FuncType).Params.List[1].Type.(*ast.StarExpr).X; args.(type) {
+	case *ast.SelectorExpr:
+		originArgsType = "emptypb.Empty"
+	default:
+		originArgsType = "rpc." + args.(*ast.Ident).Name
+	}
+
+	switch reply := m.Type.(*ast.FuncType).Results.List[0].Type.(*ast.StarExpr).X; reply.(type) {
+	case *ast.SelectorExpr:
+		originReplyType = "emptypb.Empty"
+	default:
+		originReplyType = "rpc." + reply.(*ast.Ident).Name
+	}
+	return Data{
+		ServiceName:     rep.ReplaceAllString(clientName, ""),
+		MethodName:      m.Names[0].Name,
+		OriginArgsType:  originArgsType,
+		OriginReplyType: originReplyType,
+	}
 }
 
 // write テンプレートファイルから書き出し

@@ -21,6 +21,7 @@ func main() {
 		),
 		RegisterRPC(),
 		gshell.RegisterScenarioFactory(NewScenario),
+		gshell.RegisterRPCAliasHandler(HandleRPCAlias),
 	}
 	s := gshell.New(host, opts...)
 	s.Start()
@@ -44,6 +45,10 @@ func HandleError(ctx context.Context, c *gshell.Client, r gshell.RPC, invoker gs
 	return res, err
 }
 
+func HandleRPCAlias(serviceName, methodName string) string {
+	return methodName
+}
+
 type Scenario struct {
 	c *gshell.Client
 }
@@ -57,9 +62,9 @@ func (s *Scenario) call(r gshell.RPC) {
 }
 
 func (s *Scenario) Boot() {
-	s.call(&CreateUser{})
-	println("user_id: " + GetAuthCreateUserReply(s.c).GetUserId())
-	s.call(&Login{})
+	s.call(&AuthService_CreateUser{})
+	println("user_id: " + GetAuthService_CreateUserReply(s.c).GetUserId())
+	s.call(&AuthService_Login{})
 }
 
 func (_ *Scenario) Test(i int, s string) {
@@ -68,9 +73,9 @@ func (_ *Scenario) Test(i int, s string) {
 }
 
 // Default 手書きデフォルト値
-func (r *Login) Default(c *gshell.Client) *service.AuthLoginArgs {
+func (r *AuthService_Login) Default(c *gshell.Client) *service.AuthLoginArgs {
 	return &service.AuthLoginArgs{
-		UserId: GetAuthCreateUserReply(c).GetUserId(),
-		Secret: GetAuthCreateUserReply(c).GetSecret(),
+		UserId: GetAuthService_CreateUserReply(c).GetUserId(),
+		Secret: GetAuthService_CreateUserReply(c).GetSecret(),
 	}
 }

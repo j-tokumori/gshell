@@ -3,6 +3,7 @@ package gshell
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -14,8 +15,6 @@ type Conn = grpc.ClientConnInterface
 type RPC interface {
 	Call(ctx context.Context, conn Conn) (*Response, error)
 }
-
-type RPCFactory func([]byte) RPC
 
 type Response struct {
 	Reply   proto.Message
@@ -56,14 +55,14 @@ func (c *Client) LastRPCName() string {
 
 func (c *Client) Call(r RPC) {
 	defaultize(r, c)
-	c.lastRPCName = reflect.ValueOf(r).Elem().Type().Name()
+	c.lastRPCName = getRPCTypeName(r)
 
 	res, err := c.Invoke(context.Background(), r)
 	if err != nil {
 		panic(err) // TODO: return?
 	}
 
-	c.responses[getKey(r)] = res
+	c.responses[getRPCTypeName(r)] = res
 }
 
 func (c *Client) Invoke(ctx context.Context, r RPC) (*Response, error) {
@@ -77,7 +76,13 @@ func invoke(ctx context.Context, c *Client, r RPC) (*Response, error) {
 	return r.Call(ctx, c.conn)
 }
 
-func getKey(r RPC) string {
+func getServiceAndMethodName(r RPC) (serviceName, methodName string) {
+	typeName := getRPCTypeName(r)
+	s := strings.Split(typeName, "_")
+	return s[0], s[1]
+}
+
+func getRPCTypeName(r RPC) string {
 	return reflect.ValueOf(r).Elem().Type().Name()
 }
 
