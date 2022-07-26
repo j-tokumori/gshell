@@ -47,7 +47,7 @@ func NewAuthService_CreateUser(in []byte) gshell.RPC {
 
 // GetAuthService_CreateUserReply ...
 func GetAuthService_CreateUserReply(c *gshell.Client) *rpc.AuthCreateUserReply {
-	if res := c.Response("AuthService_CreateUser"); res != nil {
+	if res := c.Response("AuthService.CreateUser"); res != nil {
 		return res.Reply.(*rpc.AuthCreateUserReply)
 	}
 	return nil
@@ -77,7 +77,7 @@ func NewAuthService_Login(in []byte) gshell.RPC {
 
 // GetAuthService_LoginReply ...
 func GetAuthService_LoginReply(c *gshell.Client) *rpc.AuthLoginReply {
-	if res := c.Response("AuthService_Login"); res != nil {
+	if res := c.Response("AuthService.Login"); res != nil {
 		return res.Reply.(*rpc.AuthLoginReply)
 	}
 	return nil

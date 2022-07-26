@@ -18,22 +18,15 @@ type Command interface {
 }
 
 type RPCCommand struct {
-	aliasMap map[string]string
 }
 
-func NewRPCCommand(rpcMap map[string]RPCFactory, f RPCAliasHandler) *RPCCommand {
-	c := &RPCCommand{}
-	c.aliasMap = make(map[string]string, len(rpcMap))
-	for key, rpc := range rpcMap {
-		s, m := getServiceAndMethodName(rpc([]byte("{}")))
-		c.aliasMap[f(s, m)] = key
-	}
-	return c
+func NewRPCCommand() *RPCCommand {
+	return &RPCCommand{}
 }
 
 func (c *RPCCommand) Exec(client *Client, args ...string) bool {
 	parsed := c.parseArgs(args[1])
-	rpcTypeName := c.getRPCTypeName(args[0])
+	rpcTypeName := client.opts.getRPCTypeName(args[0])
 	f := client.opts.rpcMap[rpcTypeName]
 	rpc := f([]byte(parsed))
 	client.Call(rpc)
@@ -65,15 +58,12 @@ func (c *RPCCommand) parseArgs(str string) string {
 	return "{" + strings.Join(modArgs, ",") + "}"
 }
 
-func (c *RPCCommand) getRPCTypeName(arg string) string {
-	if key, ok := c.aliasMap[arg]; ok {
-		return key
-	}
-	return arg
-}
-
 type ScenarioCommand struct {
 	ScenarioPlayer *ScenarioPlayer
+}
+
+func NewScenarioCommand(sp *ScenarioPlayer) *ScenarioCommand {
+	return &ScenarioCommand{sp}
 }
 
 func (c *ScenarioCommand) Exec(client *Client, args ...string) bool {
@@ -88,6 +78,10 @@ func (c *ScenarioCommand) Exec(client *Client, args ...string) bool {
 type ResponseCommand struct {
 }
 
+func NewResponseCommand() *ResponseCommand {
+	return &ResponseCommand{}
+}
+
 func (c *ResponseCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
 		printResponse(client, client.lastRPCName)
@@ -98,6 +92,10 @@ func (c *ResponseCommand) Exec(client *Client, args ...string) bool {
 }
 
 type ReplyCommand struct {
+}
+
+func NewReplyCommand() *ReplyCommand {
+	return &ReplyCommand{}
 }
 
 func (c *ReplyCommand) Exec(client *Client, args ...string) bool {
@@ -112,6 +110,10 @@ func (c *ReplyCommand) Exec(client *Client, args ...string) bool {
 type HeaderCommand struct {
 }
 
+func NewHeaderCommand() *HeaderCommand {
+	return &HeaderCommand{}
+}
+
 func (c *HeaderCommand) Exec(client *Client, args ...string) bool {
 	if args[0] == "" {
 		printMD(client.responses[client.lastRPCName].Header)
@@ -122,6 +124,10 @@ func (c *HeaderCommand) Exec(client *Client, args ...string) bool {
 }
 
 type TrailerCommand struct {
+}
+
+func NewTrailerCommand() *TrailerCommand {
+	return &TrailerCommand{}
 }
 
 func (c *TrailerCommand) Exec(client *Client, args ...string) bool {
@@ -136,22 +142,43 @@ func (c *TrailerCommand) Exec(client *Client, args ...string) bool {
 type SampleCommand struct {
 }
 
+func NewSampleCommand() *SampleCommand {
+	return &SampleCommand{}
+}
+
 func (c *SampleCommand) Exec(client *Client, args ...string) bool {
-	printSample(client, args[0])
+	printSample(client, client.opts.getRPCTypeName(args[0]))
 	return false
 }
 
 type ListCommand struct {
 }
 
+func NewListCommand() *ListCommand {
+	return &ListCommand{}
+}
+
 func (c *ListCommand) Exec(client *Client, args ...string) bool {
-	if args[0] == "rpc" {
-		printRPCList(client.opts.rpcMap, args[1])
+	list := make([]string, 0)
+	switch args[0] {
+	case "rpc":
+		for key := range client.opts.rpcMap {
+			list = append(list, key)
+		}
+	case "alias":
+		for key := range client.opts.rpcAliasMap {
+			list = append(list, key)
+		}
 	}
+	printList(list, args[1])
 	return false
 }
 
 type TraceCommand struct {
+}
+
+func NewTraceCommand() *TraceCommand {
+	return &TraceCommand{}
 }
 
 func (c *TraceCommand) Exec(client *Client, args ...string) bool {
@@ -166,11 +193,19 @@ func (c *TraceCommand) Exec(client *Client, args ...string) bool {
 type EmptyCommand struct {
 }
 
+func NewEmptyCommand() *EmptyCommand {
+	return &EmptyCommand{}
+}
+
 func (c *EmptyCommand) Exec(client *Client, args ...string) bool {
 	return false
 }
 
 type HelpCommand struct {
+}
+
+func NewHelpCommand() *HelpCommand {
+	return &HelpCommand{}
 }
 
 func (c *HelpCommand) Exec(client *Client, args ...string) bool {
@@ -179,6 +214,10 @@ func (c *HelpCommand) Exec(client *Client, args ...string) bool {
 }
 
 type ExitCommand struct {
+}
+
+func NewExitCommand() *ExitCommand {
+	return &ExitCommand{}
 }
 
 func (c *ExitCommand) Exec(client *Client, args ...string) bool {
@@ -295,13 +334,13 @@ func samplize(r interface{}) {
 	}
 }
 
-func printRPCList(rpcMap map[string]RPCFactory, search string) {
-	nameList := make([]string, 0)
-	for key := range rpcMap {
-		nameList = append(nameList, key)
+func printList(in []string, search string) {
+	list := make([]string, 0, len(in))
+	for _, name := range in {
+		list = append(list, name)
 	}
-	sort.Strings(nameList)
-	for _, s := range nameList {
+	sort.Strings(list)
+	for _, s := range list {
 		if strings.Contains(s, search) {
 			fmt.Println(s)
 		}

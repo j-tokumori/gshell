@@ -2,6 +2,7 @@ package gshell
 
 import (
 	"crypto/tls"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -14,7 +15,31 @@ type options struct {
 	grpcDialOptions []grpc.DialOption
 	rpcMap          map[string]RPCFactory
 	rpcAliasHandler RPCAliasHandler
+	rpcAliasMap     map[string]string
 	scenarioFactory ScenarioFactory
+}
+
+func (o *options) init(opts ...Option) {
+	for _, opt := range opts {
+		opt.apply(o)
+	}
+
+	if o.rpcAliasHandler == nil {
+		o.rpcAliasHandler = defaultRPCAliasHandler
+	}
+
+	o.rpcAliasMap = make(map[string]string, len(o.rpcMap))
+	for key, _ := range o.rpcMap {
+		s := strings.Split(key, ".") // s[0] = serviceName, s[1] = methodName
+		o.rpcAliasMap[o.rpcAliasHandler(s[0], s[1])] = key
+	}
+}
+
+func (o *options) getRPCTypeName(arg string) string {
+	if key, ok := o.rpcAliasMap[arg]; ok {
+		return key
+	}
+	return arg
 }
 
 type RPCFactory func([]byte) RPC

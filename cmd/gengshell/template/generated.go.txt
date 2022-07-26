@@ -48,7 +48,7 @@ func New{{$data.ServiceName}}_{{$data.MethodName}}(in []byte) gshell.RPC {
 
 // Get{{$data.ServiceName}}_{{$data.MethodName}}Reply ...
 func Get{{$data.ServiceName}}_{{$data.MethodName}}Reply(c *gshell.Client) *{{$data.OriginReplyType}} {
-	if res := c.Response("{{$data.ServiceName}}_{{$data.MethodName}}"); res != nil {
+	if res := c.Response("{{$data.ServiceName}}.{{$data.MethodName}}"); res != nil {
 		return res.Reply.(*{{$data.OriginReplyType}})
 	}
 	return nil

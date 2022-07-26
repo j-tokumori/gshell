@@ -76,14 +76,8 @@ func invoke(ctx context.Context, c *Client, r RPC) (*Response, error) {
 	return r.Call(ctx, c.conn)
 }
 
-func getServiceAndMethodName(r RPC) (serviceName, methodName string) {
-	typeName := getRPCTypeName(r)
-	s := strings.Split(typeName, "_")
-	return s[0], s[1]
-}
-
 func getRPCTypeName(r RPC) string {
-	return reflect.ValueOf(r).Elem().Type().Name()
+	return strings.ReplaceAll(reflect.ValueOf(r).Elem().Type().Name(), "_", ".")
 }
 
 // defaultize 引数 r をデフォルト値で埋める。破壊的メソッド
