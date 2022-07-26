@@ -17,33 +17,28 @@ type Shell struct {
 
 func New(host string, opts ...Option) *Shell {
 	options := &options{}
-	for _, opt := range opts {
-		opt.apply(options)
-	}
-
-	if options.rpcAliasHandler == nil {
-		options.rpcAliasHandler = defaultRPCAliasHandler
-	}
+	options.init(opts...)
 
 	s := &Shell{
 		Client:   NewClient(host, options),
 		Commands: make(map[string]Command, 0),
 	}
-	s.RegisterCommand([]string{"rpc", "r", "call"}, NewRPCCommand(options.rpcMap, options.rpcAliasHandler))
+	s.RegisterCommand([]string{"rpc", "r", "call"}, NewRPCCommand())
 	if options.scenarioFactory != nil {
 		scenario := options.scenarioFactory(s.Client)
-		s.RegisterCommand([]string{"scenario", "s"}, &ScenarioCommand{NewScenarioPlayer(scenario)})
+		s.RegisterCommand([]string{"scenario", "s"}, NewScenarioCommand(NewScenarioPlayer(scenario)))
 	}
-	s.RegisterCommand([]string{"response"}, &ResponseCommand{})
-	s.RegisterCommand([]string{"reply"}, &ReplyCommand{})
-	s.RegisterCommand([]string{"Header"}, &HeaderCommand{})
-	s.RegisterCommand([]string{"Trailer"}, &TrailerCommand{})
-	s.RegisterCommand([]string{"sample"}, &SampleCommand{})
-	s.RegisterCommand([]string{"list"}, &ListCommand{})
-	s.RegisterCommand([]string{"trace"}, &TraceCommand{})
-	s.RegisterCommand([]string{""}, &EmptyCommand{})
-	s.RegisterCommand([]string{"help"}, &HelpCommand{})
-	s.RegisterCommand([]string{"exit", "quit"}, &ExitCommand{})
+	s.RegisterCommand([]string{"response"}, NewResponseCommand())
+	s.RegisterCommand([]string{"reply"}, NewReplyCommand())
+	s.RegisterCommand([]string{"Header"}, NewHeaderCommand())
+	s.RegisterCommand([]string{"Trailer"}, NewTrailerCommand())
+	s.RegisterCommand([]string{"sample"}, NewSampleCommand())
+	s.RegisterCommand([]string{"list"}, NewListCommand())
+	s.RegisterCommand([]string{"trace"}, NewTraceCommand())
+	s.RegisterCommand([]string{""}, NewEmptyCommand())
+	s.RegisterCommand([]string{"help"}, NewHelpCommand())
+	s.RegisterCommand([]string{"exit", "quit"}, NewExitCommand())
+
 	return s
 }
 
