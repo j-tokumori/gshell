@@ -296,14 +296,15 @@ func samplize(r interface{}) {
 			isZero = value.Interface() == reflect.Zero(field.Type).Interface()
 		}
 		if !isZero {
-			return
+			continue
 		}
 
 		// ゼロ値なら代入
 		switch field.Type.Kind() { //nolint:exhaustive
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			pv.Elem().FieldByName(field.Name).SetInt(1)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			pv.Elem().FieldByName(field.Name).SetUint(1)
 		case reflect.String:
 			pv.Elem().FieldByName(field.Name).SetString("hoge")
 		case reflect.Struct:
@@ -321,9 +322,14 @@ func samplize(r interface{}) {
 				f.Set(reflect.Append(f, reflect.ValueOf(itf)))
 			} else {
 				switch field.Type.Elem().Kind() { //nolint:exhaustive
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					f.Set(reflect.Append(f, reflect.ValueOf(int32(1)))) // TODO: 1 ではだめだった。。int32 以外どうするか
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					v := reflect.New(field.Type.Elem()).Elem()
+					v.SetInt(1)
+					f.Set(reflect.Append(f, v))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					v := reflect.New(field.Type.Elem()).Elem()
+					v.SetUint(1)
+					f.Set(reflect.Append(f, v))
 				case reflect.Struct:
 					panic("TODO")
 				case reflect.String:
