@@ -4,16 +4,18 @@ go 1.18
 
 require (
 	github.com/peterh/liner v1.2.2
-	golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135
-	google.golang.org/grpc v1.45.0
+	golang.org/x/tools v0.12.0
+	google.golang.org/grpc v1.57.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
-	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/mattn/go-runewidth v0.0.3 // indirect
-	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
-	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
-	golang.org/x/text v0.3.3 // indirect
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
+	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/text v0.12.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577 // indirect
 )
