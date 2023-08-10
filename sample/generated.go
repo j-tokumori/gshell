@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 
-	rpc "github.com/j-tokumori/gshell/sample/service"
+	rpc "github.com/j-tokumori/gshell/sample/grpc"
 
 	"github.com/j-tokumori/gshell"
 
@@ -18,26 +18,25 @@ type _ = emptypb.Empty
 // RegisterRPC ...
 func RegisterRPC() gshell.Option {
 	return gshell.RegisterRPCFactories(
-		NewAuthService_CreateUser,
-		NewAuthService_Login,
+		NewSampleService_Hello,
 	)
 }
 
-// AuthService_CreateUser ...
-type AuthService_CreateUser emptypb.Empty
+// SampleService_Hello ...
+type SampleService_Hello rpc.HelloRequest
 
 // Call ...
-func (r *AuthService_CreateUser) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
-	client := rpc.NewAuthServiceClient(conn)
-	args := emptypb.Empty(*r)
+func (r *SampleService_Hello) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
+	client := rpc.NewSampleServiceClient(conn)
+	args := rpc.HelloRequest(*r)
 	res = gshell.NewEmptyResponse()
-	res.Reply, err = client.CreateUser(ctx, &args, gshell.ResponseOptions(res)...)
+	res.Reply, err = client.Hello(ctx, &args, gshell.ResponseOptions(res)...)
 	return res, err
 }
 
-// NewAuthService_CreateUser ...
-func NewAuthService_CreateUser(in []byte) gshell.RPC {
-	r := &AuthService_CreateUser{}
+// NewSampleService_Hello ...
+func NewSampleService_Hello(in []byte) gshell.RPC {
+	r := &SampleService_Hello{}
 	err := json.Unmarshal(in, r)
 	if err != nil {
 		panic(err)
@@ -45,40 +44,10 @@ func NewAuthService_CreateUser(in []byte) gshell.RPC {
 	return r
 }
 
-// GetAuthService_CreateUserReply ...
-func GetAuthService_CreateUserReply(c *gshell.Client) *rpc.AuthCreateUserReply {
-	if res := c.Response("AuthService.CreateUser"); res != nil {
-		return res.Reply.(*rpc.AuthCreateUserReply)
-	}
-	return nil
-}
-
-// AuthService_Login ...
-type AuthService_Login rpc.AuthLoginArgs
-
-// Call ...
-func (r *AuthService_Login) Call(ctx context.Context, conn gshell.Conn) (res *gshell.Response, err error) {
-	client := rpc.NewAuthServiceClient(conn)
-	args := rpc.AuthLoginArgs(*r)
-	res = gshell.NewEmptyResponse()
-	res.Reply, err = client.Login(ctx, &args, gshell.ResponseOptions(res)...)
-	return res, err
-}
-
-// NewAuthService_Login ...
-func NewAuthService_Login(in []byte) gshell.RPC {
-	r := &AuthService_Login{}
-	err := json.Unmarshal(in, r)
-	if err != nil {
-		panic(err)
-	}
-	return r
-}
-
-// GetAuthService_LoginReply ...
-func GetAuthService_LoginReply(c *gshell.Client) *rpc.AuthLoginReply {
-	if res := c.Response("AuthService.Login"); res != nil {
-		return res.Reply.(*rpc.AuthLoginReply)
+// GetSampleService_HelloReply ...
+func GetSampleService_HelloReply(c *gshell.Client) *rpc.HelloResponse {
+	if res := c.Response("SampleService.Hello"); res != nil {
+		return res.Reply.(*rpc.HelloResponse)
 	}
 	return nil
 }
