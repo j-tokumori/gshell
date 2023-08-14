@@ -3,7 +3,9 @@ module github.com/j-tokumori/gshell
 go 1.18
 
 require (
+	github.com/goccy/go-json v0.10.2
 	github.com/peterh/liner v1.2.2
+	github.com/pseudomuto/protokit v0.2.1
 	golang.org/x/tools v0.12.0
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0

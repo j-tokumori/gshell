@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package service;
 
-option go_package = "sample/grpc";
+option go_package = "github.com/j-tokumori/gshell/sample/grpc";
 
 service SampleService {
   rpc Hello(HelloRequest) returns (HelloResponse);
