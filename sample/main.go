@@ -5,16 +5,14 @@ import (
 	"fmt"
 
 	"github.com/j-tokumori/gshell"
-	"github.com/j-tokumori/gshell/sample/service"
+	"github.com/j-tokumori/gshell/sample/grpc"
 	"google.golang.org/grpc/status"
 )
 
 func main() {
-	host := "localhost:9090"
+	host := "localhost:8080"
 	opts := []gshell.Option{
-		//gshell.WithSecure(),
 		gshell.WithInsecure(),
-		//gshell.WithCodec(nil),
 		gshell.WithCallingChain(
 			HandleContext,
 			HandleError,
@@ -62,9 +60,9 @@ func (s *Scenario) call(r gshell.RPC) {
 }
 
 func (s *Scenario) Boot() {
-	s.call(&AuthService_CreateUser{})
-	println("user_id: " + GetAuthService_CreateUserReply(s.c).GetUserId())
-	s.call(&AuthService_Login{})
+	println("boot up!")
+	s.call(&SampleService_Hello{})
+	gshell.NewReplyCommand().Exec(s.c, "")
 }
 
 func (_ *Scenario) Test(i int, s string) {
@@ -73,9 +71,8 @@ func (_ *Scenario) Test(i int, s string) {
 }
 
 // Default 手書きデフォルト値
-func (r *AuthService_Login) Default(c *gshell.Client) *service.AuthLoginArgs {
-	return &service.AuthLoginArgs{
-		UserId: GetAuthService_CreateUserReply(c).GetUserId(),
-		Secret: GetAuthService_CreateUserReply(c).GetSecret(),
+func (r *SampleService_Hello) Default(c *gshell.Client) *grpc.HelloRequest {
+	return &grpc.HelloRequest{
+		Name: "Sample",
 	}
 }
