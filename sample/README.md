@@ -7,7 +7,8 @@ sample.proto
 
 gshell コード生成
 ```bash
-$ go run ../cmd/gengshell/... -module="github.com/j-tokumori/gshell/sample/grpc" -output=generated.go
+$ go install ../cmd/protoc-gen-go-gshell/...
+$ protoc -I. --go-gshell_out=. ./*.proto
 ```
 
 サンプルサーバ起動
