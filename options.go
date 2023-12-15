@@ -1,7 +1,9 @@
 package gshell
 
 import (
+	"context"
 	"crypto/tls"
+	"net"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -89,6 +91,22 @@ type Codec = encoding.Codec
 func WithCodec(codec Codec) Option {
 	return newFuncOption(func(o *options) {
 		o.grpcDialOptions = append(o.grpcDialOptions, grpc.WithDefaultCallOptions(grpc.ForceCodec(codec)))
+	})
+}
+
+func WithForceIPv6() Option {
+	var d net.Dialer
+	d.Resolver = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return d.DialContext(ctx, "udp6", addr)
+		},
+	}
+
+	return newFuncOption(func(o *options) {
+		o.grpcDialOptions = append(o.grpcDialOptions, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			return d.DialContext(ctx, "tcp6", addr)
+		}))
 	})
 }
 
